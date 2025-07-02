@@ -1,0 +1,1013 @@
+/* ==========================================================================
+   CONFIGURACIÓN GLOBAL Y VARIABLES
+   ========================================================================== */
+
+/* Propiedades CSS personalizadas para Temas y Consistencia */
+:root {
+    /* Paleta de Colores Principal - ¡MODIFICADO A AZUL OSCURO Y MODERNO! */
+    --color-primary: #2C3E50; /* Un azul medianoche/navy profundo */
+    --color-primary-dark: #1A2B3C; /* Más oscuro para hovers y bordes */
+    --color-primary-light: #294e4b; /* Un tono más claro para acentos y toggles */
+
+    --color-success: #4CAF50;
+    --color-success-dark: #45A049;
+    --color-danger: #EF5350;
+    --color-danger-dark: #E53935;
+    --color-info: #2196F3;
+    --color-info-dark: #1976D2;
+    --color-secondary: #6c757d;
+    --color-secondary-dark: #5a6268;
+    
+    /* Colores de UI y Texto - Ampliación de grises y fondo */
+    --color-text-primary: #212529; /* Un negro más suave */
+    --color-text-secondary: #495057; /* Gris oscuro para descripciones */
+    --color-text-light: #f8f9fa; /* Para texto sobre fondos oscuros */
+
+    --color-background: #f8f9fa; /* Fondo general más claro */
+    --color-surface: #ffffff; /* Superficie de tarjetas y contenedores */
+    --color-light-gray-bg: #f0f2f5; /* Un gris muy ligero para fondos de secciones */
+    --color-border: #e9ecef; /* Bordes más suaves */
+    --color-input-border-focus: #adb5bd; /* Borde de input en foco (inicial) */
+    
+    /* Tipografía */
+    --font-family: 'Inter', sans-serif;
+    --font-size-base: 16px;
+    --font-size-sm: 14px;
+    --font-size-lg: 20px;
+    
+    /* Espaciado */
+    --space-xxs: 4px;
+    --space-xs: 8px;
+    --space-sm: 12px;
+    --space-md: 20px;
+    --space-lg: 28px;
+    --space-xl: 40px;
+    
+    /* Bordes y Sombras */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px; /* Un poco más de curvatura para containers principales */
+
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.12);
+    --shadow-md: 0 3px 6px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.15);
+    --shadow-lg: 0 10px 20px rgba(0,0,0,0.15), 0 6px 6px rgba(0,0,0,0.1);
+    
+    /* Transiciones */
+    --transition-speed: 0.3s ease-in-out;
+}
+
+/* ==========================================================================
+   RESETEO BÁSICO Y ESTILOS DEL BODY
+   ========================================================================== */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    background: var(--color-background);
+    min-height: 100vh;
+    padding: var(--space-md); /* Se mantiene padding para desktop */
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Centra el contenedor principal */
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+    line-height: 1.6;
+}
+
+/* ==========================================================================
+   ESTRUCTURA PRINCIPAL DE LA APLICACIÓN
+   ========================================================================== */
+
+.main-app-container {
+    width: 100%;
+    max-width: 1100px; /* Un poco más ancho para reportes y tablas */
+    margin: 0 auto;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg); /* Sombra más prominente */
+    overflow: hidden; /* Asegura que el contenido no desborde las esquinas redondeadas */
+    display: flex;
+    flex-direction: column; /* Organiza header, nav, main verticalmente */
+}
+
+.app-header {
+    background: var(--color-primary);
+    color: var(--color-text-light); /* Texto blanco sobre primario */
+    padding: var(--space-lg) var(--space-xl); /* Más padding */
+    text-align: center;
+    border-bottom: 4px solid var(--color-primary-dark);
+}
+
+.app-header h1 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-xs); /* Menos margen */
+    font-weight: 700;
+}
+.app-header p {
+    font-size: var(--font-size-sm);
+    opacity: 0.9;
+}
+
+/* Barra de Navegación */
+.main-nav {
+    display: flex;
+    justify-content: center;
+    background-color: var(--color-light-gray-bg); /* Fondo más suave */
+    padding: var(--space-sm) var(--space-xs); /* Padding ajustado */
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+    gap: var(--space-xs); /* Espacio entre botones */
+}
+
+.main-nav button {
+    background: none;
+    border: none; /* Quitamos el borde para un look más moderno */
+    color: var(--color-text-secondary); /* Color de texto suave */
+    padding: 10px 20px; /* Ajusta padding para que quepan íconos de navegación */
+    border-radius: var(--radius-sm); /* Bordes más sutiles */
+    cursor: pointer;
+    font-weight: 500; /* Peso de fuente intermedio */
+    font-size: var(--font-size-base);
+    transition: all var(--transition-speed); /* Transición suave */
+    white-space: nowrap;
+    position: relative; /* Para el efecto de borde inferior */
+    text-transform: uppercase; /* Para un look más moderno */
+    letter-spacing: 0.5px;
+}
+
+.main-nav button::after { /* Efecto de subrayado al pasar el ratón */
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    height: 3px;
+    width: 0;
+    background-color: var(--color-primary);
+    transition: width var(--transition-speed);
+    border-radius: 2px;
+}
+
+.main-nav button:hover {
+    color: var(--color-primary);
+    background-color: rgba(44, 62, 80, 0.05); 
+}
+
+.main-nav button:hover::after {
+    width: calc(100% - var(--space-sm)); /* Subrayado en hover */
+}
+
+.main-nav button.active {
+    color: var(--color-primary);
+    background-color: var(--color-surface); /* Blanco para la activa */
+    font-weight: 600;
+    box-shadow: var(--shadow-sm); /* Sombra ligera para la activa */
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.main-nav button.active::after {
+    width: calc(100% - var(--space-sm)); /* Subrayado permanente para la activa */
+    background-color: var(--color-primary);
+}
+
+#logout-btn {
+    border-color: var(--color-danger); /* Mantener el color de peligro */
+    color: var(--color-danger);
+    background: none; /* Asegurar que no tenga fondo por defecto */
+}
+#logout-btn:hover {
+    background-color: var(--color-danger);
+    color: var(--color-text-light);
+}
+#logout-btn::after { /* Quitar el subrayado para logout */
+    display: none;
+}
+#logout-btn:hover::after {
+    display: none;
+}
+
+
+/* Contenido de las Páginas */
+.page-content {
+    padding: var(--space-xl); /* Más padding para el contenido de la página */
+    background: var(--color-surface); /* Fondo blanco */
+    flex-grow: 1; /* Para que ocupe el espacio disponible */
+}
+.page-content.hidden { display: none; }
+
+.page-title {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-border); /* Borde más suave */
+    font-weight: 700;
+}
+
+.page-subtitle {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-lg);
+}
+
+/* ==========================================================================
+   FORMULARIOS, FILTROS Y ENTRADAS
+   ========================================================================== */
+
+.filters-section {
+    background: var(--color-light-gray-bg); /* Fondo más claro */
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-xl);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+    align-items: end;
+    box-shadow: var(--shadow-sm); /* Sombra ligera */
+}
+@media (min-width: 640px) {
+    .filters-section { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+}
+
+.form-group {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs); /* Menos espacio entre label e input */
+}
+
+label {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-xxs); /* Poco margen */
+}
+
+input, select, textarea {
+    padding: 10px 14px; /* Restaura padding aquí para evitar problemas visuales si se definió globalmente un valor más pequeño */
+    border: 1px solid var(--color-border); /* Borde más fino */
+    border-radius: var(--radius-sm); /* Menos curvatura */
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    transition: all 0.2s ease; /* Restaura la velocidad de transición para inputs */
+    width: 100%;
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+}
+
+input[readonly] {
+    background-color: var(--color-light-gray-bg); /* Color de fondo para readonly */
+    cursor: not-allowed;
+    border-color: var(--color-border);
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--color-primary); /* Borde primario en foco */
+    box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.15); 
+}
+
+/* Placeholders */
+input::placeholder, textarea::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.7; /* Más suave */
+}
+
+.filter-actions {
+    display: flex;
+    gap: var(--space-sm);
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    padding-top: var(--space-sm); /* Más espacio arriba */
+}
+
+#form-message {
+    margin-bottom: var(--space-md); 
+    padding: var(--space-sm) var(--space-md); /* Ajuste de padding */
+    border-radius: var(--radius-sm); /* Ajuste de radio */
+    display: none;
+    text-align: center;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+/* ==========================================================================
+   BOTONES
+   ========================================================================== */
+
+.btn {
+    padding: 12px 20px; /* Padding ajustado para altura consistente */
+    border: none;
+    border-radius: var(--radius-sm); /* Menos curvatura */
+    cursor: pointer;
+    font-weight: 600;
+    transition: all var(--transition-speed); /* Transición unificada */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs); /* Espacio entre ícono y texto */
+    font-size: var(--font-size-sm);
+    min-height: 48px; /* Mayor altura táctil */
+    text-transform: uppercase; /* Texto en mayúsculas */
+    letter-spacing: 0.5px;
+    box-shadow: var(--shadow-sm); /* Sombra ligera por defecto */
+}
+.btn:active { 
+    transform: translateY(1px); /* Efecto de "presionar" */
+    box-shadow: none; /* Eliminar sombra al presionar */
+}
+
+.btn:hover {
+    box-shadow: var(--shadow-md); /* Sombra más prominente en hover */
+}
+
+.btn-danger { background: var(--color-danger); color: var(--color-text-light); padding: 0; width: 44px; height: 44px; border-radius: 50%; }
+.btn-danger:hover { background: var(--color-danger-dark); }
+.btn-danger .icon { font-size: 24px; } /* Icono más grande */
+
+.btn-add, .btn-apply-filters { background: var(--color-primary); color: var(--color-text-light); }
+.btn-add:hover, .btn-apply-filters:hover { background: var(--color-primary-dark); }
+
+.btn-save { background: var(--color-success); color: var(--color-text-light); }
+.btn-save:hover { background: var(--color-success-dark); }
+
+.btn-cancel, .btn-clear { background: var(--color-secondary); color: var(--color-text-light); }
+.btn-cancel:hover, .btn-clear:hover { background: var(--color-secondary-dark); }
+
+/* Estilo del botón de toggle de filtros (por defecto: filtros ocultos) */
+#toggle-musicians-btn, .btn-filter-toggle {
+    width: 100%;
+    background-color: var(--color-primary); /* Color oscuro principal */
+    color: var(--color-text-light);
+    box-shadow: var(--shadow-sm);
+}
+@media (min-width: 768px) {
+    #toggle-musicians-btn {
+        width: auto;
+    }
+}
+/* Hover para el botón de toggle de filtros (cuando está cerrado) */
+#toggle-musicians-btn:hover, .btn-filter-toggle:hover {
+    background-color: var(--color-primary-dark); /* Color más oscuro en hover */
+}
+
+/* Estilo para el botón de toggle de filtros cuando está ACTIVO (filtros visibles) */
+.btn-filter-toggle.active-filter-toggle {
+    background-color: var(--color-primary-light); /* Color claro cuando está abierto */
+    color: var(--color-text-light); /* Asegura que el texto siga siendo claro */
+}
+
+/* Hover para el botón de toggle de filtros cuando está ACTIVO (filtros visibles) */
+.btn-filter-toggle.active-filter-toggle:hover {
+    background-color: var(--color-primary); /* Vuelve al color principal en hover cuando está abierto */
+}
+
+
+.actions {
+    display: flex;
+    gap: var(--space-md);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border); /* Borde más suave */
+    margin-top: var(--space-lg); /* Espacio superior */
+}
+.actions .btn {
+    flex: 1;
+    min-width: unset; /* Reiniciar min-width */
+    padding: var(--space-sm) var(--space-md); /* Padding adaptativo */
+    font-size: var(--font-size-sm);
+}
+.actions .btn .btn-text {
+    display: inline;
+}
+@media (min-width: 768px) {
+    .actions .btn {
+        flex-grow: 0; /* No crece tanto */
+        min-width: 150px; /* Ancho mínimo para desktop */
+    }
+    .actions .btn .btn-text {
+        display: inline; /* Mantener el texto en desktop */
+    }
+}
+
+/* ==========================================================================
+   COMPONENTES ESPECÍFICOS
+   ========================================================================== */
+
+/* NUEVO: Wrapper para campos de autocompletado */
+.input-autocomplete-wrapper {
+    position: relative; /* Establece el contexto de posicionamiento para las sugerencias */
+    flex-grow: 1; /* Permite que ocupe el espacio disponible en flex/grid */
+    min-width: 0; /* Permite que el item se encoja correctamente en flex/grid */
+}
+
+/* ======== CAMBIOS PARA FORMULARIO DE REGISTRO (compactación) ======== */
+/* Contenedor para Fecha y Director */
+.main-info-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* Una columna en móvil */
+    gap: var(--space-md); /* Espacio entre Fecha y Director */
+}
+/* En pantallas más grandes, colocamos Fecha y Director uno al lado del otro */
+@media (min-width: 600px) {
+    .main-info-grid {
+        grid-template-columns: 1fr 1fr; /* Dos columnas de igual tamaño */
+    }
+}
+
+/* Títulos de sección más compactos */
+.songs-section h3, #musicians-section h3 {
+    font-size: 1.1rem; 
+    margin-bottom: var(--space-sm) !important; 
+}
+
+
+/* Filas de Canciones (ahora con 2 inputs) */
+.song-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto; /* Columna para los inputs, columna para el botón de borrar */
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+    align-items: center;
+}
+
+/* Contenedor para los campos de canción y artista (grilla interna) */
+.song-details-inputs {
+    display: grid;
+    grid-template-columns: 1fr; /* Una columna en móvil (apilados) */
+    gap: var(--space-sm);
+}
+
+/* En pantallas más grandes, los campos de canción y artista van uno al lado del otro */
+@media (min-width: 600px) {
+    .song-details-inputs {
+        grid-template-columns: 2fr 1fr; /* Canción más grande que artista */
+    }
+}
+
+/* Los inputs dentro de esta grilla ocupan todo el ancho de su celda */
+/* Se eliminaron .song-input, .artist-input de aquí ya que input, select, textarea los cubren globalmente */
+/* .song-input, .artist-input {
+    width: 100%; 
+} */
+/* ======== FIN DE CAMBIOS PARA FORMULARIO DE REGISTRO (compactación) ======== */
+
+/* Autocompletado genérico */
+.autocomplete-suggestions { 
+    position: absolute; 
+    top: 100%;
+    left: 0; 
+    right: 0; 
+    background-color: var(--color-surface); 
+    border: 1px solid var(--color-border); 
+    border-top: none; 
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm); /* Menos curvatura */
+    box-shadow: var(--shadow-md); /* Sombra más bonita */
+    max-height: 200px; /* Más espacio para sugerencias */
+    overflow-y: auto; 
+    z-index: 1000; /* Asegurarse de que esté por encima */
+}
+.autocomplete-item { 
+    padding: var(--space-sm) var(--space-md); /* Más padding */
+    cursor: pointer; 
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+}
+.autocomplete-item:hover, .autocomplete-item.active { 
+    background-color: var(--color-light-gray-bg); /* Fondo más suave en hover */
+    color: var(--color-primary); /* Texto primario en hover */
+}
+
+/* Tarjetas de Servicio del Historial */
+.service-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); /* Más curvatura para las tarjetas */
+    padding: var(--space-lg); /* Más padding */
+    margin-bottom: var(--space-md);
+    box-shadow: var(--shadow-sm); /* Sombra inicial suave */
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+.service-card:hover {
+    transform: translateY(-5px); /* Elevación más pronunciada */
+    box-shadow: var(--shadow-md); /* Sombra más fuerte en hover */
+}
+.service-card h3 {
+    font-size: var(--font-size-lg);
+    color: var(--color-primary);
+    margin-bottom: var(--space-xs);
+    font-weight: 700;
+}
+.service-details p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-sm);
+    line-height: 1.5;
+}
+.songs-list {
+    list-style: none;
+    padding: var(--space-xs) 0 0 0;
+    margin-top: var(--space-sm);
+    border-top: 1px dashed var(--color-border); /* Borde más suave */
+}
+.songs-list li {
+    background: var(--color-light-gray-bg); /* Fondo para elementos de lista */
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-xs);
+    margin-bottom: var(--space-xs);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    display: flex; /* Para alinear el icono y el texto */
+    align-items: center;
+    gap: var(--space-xxs);
+}
+.no-results {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: var(--space-xl);
+    background: var(--color-light-gray-bg); /* Fondo más claro */
+    border-radius: var(--radius-md);
+    font-weight: 500;
+}
+.summary-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    gap: var(--space-md); /* Espacio ajustado */
+    margin-bottom: var(--space-lg);
+    background: var(--color-light-gray-bg); /* Fondo sutil para el área de stats */
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    text-align: center; /* <<< AÑADIR ESTA LÍNEA */
+}
+.summary-item .value {
+    font-size: 36px; /* Más grande */
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: var(--space-xxs);
+}
+.summary-item .label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+.chart-card {
+    background: var(--color-surface);
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md); /* Sombra más definida */
+    border: 1px solid var(--color-border);
+}
+.chart-card h2 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-md);
+    text-align: center;
+    color: var(--color-text-primary);
+    font-weight: 700;
+}
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 350px; /* Un poco más alto para los gráficos */
+}
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-xl);
+}
+@media (min-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+.details-section {
+    background: var(--color-light-gray-bg); /* Fondo más claro */
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    margin-top: var(--space-xl);
+    border: 1px solid var(--color-border);
+}
+.details-section h2 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-lg);
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+.details-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-sm); /* Menos espacio */
+}
+@media (min-width: 640px) {
+    .details-list {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Columnas un poco más grandes */
+    }
+}
+.details-item {
+    background: var(--color-surface);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-base);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xxs);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-speed);
+}
+.details-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+.details-item strong {
+    color: var(--color-primary);
+}
+.details-item .date-director, .details-item .song-count {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+.no-details {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: var(--space-md);
+    list-style-type: none;
+}
+.load-more-btn {
+    background: var(--color-primary-light);
+    color: var(--color-text-light);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 600;
+    border: none;
+    display: block;
+    width: fit-content;
+    margin: var(--space-lg) auto;
+    box-shadow: var(--shadow-sm);
+}
+.load-more-btn:hover {
+    background: var(--color-primary);
+    box-shadow: var(--shadow-md);
+}
+.hidden {
+    display: none !important;
+}
+.musician-card {
+    background: var(--color-light-gray-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    box-shadow: var(--shadow-sm);
+}
+.musician-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+}
+.musician-card-header h4 {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--color-primary);
+}
+.musician-card .remove-musician-btn {
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-secondary);
+    color: var(--color-text-light);
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--transition-speed);
+    box-shadow: var(--shadow-sm);
+}
+.musician-card .remove-musician-btn:hover {
+    background: var(--color-danger);
+    box-shadow: var(--shadow-md);
+}
+#musiciansList {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+}
+@media (min-width: 768px) {
+    #musiciansList {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+.band-toggle-btn {
+    background: none;
+    border: none;
+    padding: var(--space-sm) 0;
+    margin-top: var(--space-md);
+    font-weight: 600;
+    color: var(--color-primary);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+    transition: color var(--transition-speed);
+}
+.band-toggle-btn:hover {
+    color: var(--color-primary-dark);
+}
+.band-toggle-btn .chevron {
+    transition: transform var(--transition-speed);
+    font-size: var(--font-size-base);
+}
+.band-toggle-btn.expanded .chevron {
+    transform: rotate(90deg);
+}
+.band-details {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out, margin-top 0.5s ease-in-out;
+}
+.band-details.expanded {
+    max-height: 500px;
+    margin-top: var(--space-sm);
+}
+.band-list {
+    list-style: none;
+    padding: var(--space-sm) 0 var(--space-sm) var(--space-md);
+    border-left: 3px solid var(--color-primary-light);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+}
+.band-list li {
+    padding: var(--space-xxs) 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xxs);
+}
+
+/* ==========================================================================
+   MODAL (Ventana Emergente)
+   ========================================================================== */
+.modal-overlay {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000; opacity: 0;
+    transition: opacity var(--transition-speed);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+}
+.modal-overlay:not(.hidden) { opacity: 1; pointer-events: auto; }
+.modal-content {
+    background: var(--color-surface);
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    text-align: center; max-width: 500px;
+    width: 90%; position: relative;
+    transform: scale(0.8);
+    transition: transform var(--transition-speed);
+    border: 1px solid var(--color-border);
+}
+.modal-overlay:not(.hidden) .modal-content { transform: scale(1); }
+.modal-close-btn { 
+    position: absolute; top: var(--space-sm); right: var(--space-md);
+    background: none; border: none; 
+    font-size: 32px;
+    font-weight: 300; 
+    color: var(--color-text-secondary);
+    cursor: pointer; 
+    transition: color var(--transition-speed);
+}
+.modal-close-btn:hover { color: var(--color-text-primary); }
+.modal-icon { 
+    font-size: 60px;
+    margin-bottom: var(--space-md); 
+    color: var(--color-success); 
+}
+/* Estilos específicos para iconos de modales */
+#confirm-modal .modal-icon {
+    color: #FFC107; /* Amarillo para advertencia */
+}
+#info-modal .modal-icon.success {
+    color: var(--color-success); /* Verde para éxito en info modal */
+}
+#info-modal .modal-icon.error {
+    color: var(--color-danger); /* Rojo para error en info modal */
+}
+#info-modal .modal-icon.info {
+    color: var(--color-info); /* Azul para info en info modal */
+}
+
+.modal-content h2 { 
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-xs); 
+    color: var(--color-text-primary); 
+    font-weight: 700;
+}
+.modal-content p { 
+    font-size: var(--font-size-base); 
+    margin-bottom: var(--space-lg); 
+    color: var(--color-text-secondary); 
+}
+.modal-actions { 
+    display: flex; 
+    gap: var(--space-sm); 
+    flex-direction: column; 
+    margin-top: var(--space-lg);
+}
+@media (min-width: 480px) { 
+    .modal-actions { flex-direction: row; justify-content: center; } 
+}
+.modal-actions button.modal-action-btn {
+    background-color: var(--color-primary); 
+    color: var(--color-text-light); 
+    border: none; 
+    padding: var(--space-sm) var(--space-md); 
+    border-radius: var(--radius-sm); 
+    font-size: var(--font-size-sm); 
+    cursor: pointer; 
+    transition: background-color var(--transition-speed), box-shadow var(--transition-speed); 
+    box-shadow: var(--shadow-sm);
+    flex: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+.modal-actions button.modal-action-btn:hover { background-color: var(--color-primary-dark); box-shadow: var(--shadow-md); }
+.modal-actions button.modal-action-btn.secondary { background-color: var(--color-secondary); }
+.modal-actions button.modal-action-btn.secondary:hover { background-color: var(--color-secondary-dark); }
+/* Estilo para el botón de peligro en el modal */
+.modal-actions button.modal-action-btn.danger {
+    background-color: var(--color-danger);
+}
+.modal-actions button.modal-action-btn.danger:hover {
+    background-color: var(--color-danger-dark);
+}
+
+
+/* ==========================================================================
+   PÁGINA DE LOGIN
+   ========================================================================== */
+#login-page {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.login-container {
+    background: var(--color-surface);
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+    border: 1px solid var(--color-border);
+}
+.login-container h2 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-xs);
+    color: var(--color-text-primary);
+    font-weight: 700;
+}
+.login-container p {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--space-lg);
+    color: var(--color-text-secondary);
+}
+.login-container .form-group {
+    text-align: left;
+    margin-bottom: var(--space-md);
+}
+.login-container .btn {
+    width: 100%;
+    margin-top: var(--space-sm);
+}
+#login-error-message {
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    display: none;
+    background-color: var(--color-danger);
+    color: var(--color-text-light);
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   OPTIMIZACIONES PARA MÓVILES (Media Queries)
+   ========================================================================== */
+@media (max-width: 767px) {
+    body { 
+        padding: 0;
+        align-items: flex-start;
+    }
+    .main-app-container { 
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .page-content { padding: var(--space-md); }
+    .app-header h1 { font-size: 22px; }
+    .app-header p { font-size: 14px; }
+    .filter-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-actions .btn {
+        width: 100%;
+    }
+    /* Reducimos la altura del contenedor del gráfico en móvil */
+    .chart-container { 
+        height: 250px; 
+    }
+    .main-nav button { 
+        padding: var(--space-xs) var(--space-sm); 
+        font-size: var(--font-size-sm); 
+        min-height: 40px;
+    }
+    .main-nav button::after { width: 0 !important; }
+    .main-nav button.active {
+        background-color: var(--color-primary);
+        color: var(--color-text-light);
+    }
+
+    .main-app-container.active-reporte .app-header,
+    .main-app-container.active-historial .app-header,
+    .main-app-container.active-formulario .app-header { display: none; }
+    .main-app-container.active-reporte .main-nav,
+    .main-app-container.active-historial .main-nav,
+    .main-app-container.active-formulario .main-nav { margin-top: 0; }
+    .main-app-container.active-reporte .page-content,
+    .main-app-container.active-historial .page-content,
+    .main-app-container.active-formulario .page-content { padding-top: var(--space-lg); }
+
+    /* Estilo del botón de toggle de filtros en móvil */
+    .btn-filter-toggle { 
+        width: 100%; 
+        margin-bottom: var(--space-md);
+        background: var(--color-primary);
+        color: var(--color-text-light); 
+        box-shadow: var(--shadow-sm);
+    }
+    /* Estado activo para el botón de toggle de filtros en móvil */
+    .btn-filter-toggle.active-filter-toggle {
+        background-color: var(--color-primary-light);
+    }
+    /* Hover para el estado activo en móvil */
+    .btn-filter-toggle.active-filter-toggle:hover {
+        background-color: var(--color-primary);
+    }
+}
+/* Estilos para la tarjeta del historial de servicios */
+.service-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-xs);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border);
+}
+/* Estilo para que el botón de eliminar sea solo el ícono */
+.delete-service-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-secondary);
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: color var(--transition-speed), transform var(--transition-speed);
+}
+
+/* Efecto visual cuando el cursor pasa por encima del ícono */
+.delete-service-btn:hover {
+    color: var(--color-danger);
+    transform: scale(1.15);
+}

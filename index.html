@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App de Alabanza</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div id="login-page">
+        <div class="login-container">
+            <h2>Iniciar Sesión</h2>
+            <p>Ingresa tus credenciales para continuar</p>
+            <div id="login-error-message"></div>
+            <div class="form-group">
+                <label for="email">Correo Electrónico</label>
+                <input type="email" id="email" placeholder="tu@correo.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" placeholder="••••••••">
+            </div>
+            <button id="login-btn" class="btn btn-save">Ingresar</button>
+        </div>
+    </div>
+
+    <!-- La clase 'hidden' se controlará por JS -->
+    <div class="main-app-container hidden"> 
+        <header class="app-header">
+            <h1>App de Alabanza</h1>
+            <p>Gestiona y visualiza los servicios de tu iglesia.</p>
+        </header>
+        <nav class="main-nav">
+            <button id="nav-reporte">📈 Reportes</button>
+            <button id="nav-historial">📜 Historial</button>
+            <button id="nav-formulario">✍️ Registro</button>
+            <!-- CAMBIO AQUÍ: Envuelve el emoji en un span con clase 'icon' -->
+            <button id="logout-btn" class="hidden"><span class="icon">🚪</span> Cerrar Sesión</button> 
+        </nav>
+
+        <main id="page-reporte" class="page-content hidden">
+            <h2 class="page-title">📈 Reporte de Estadísticas</h2>
+            <p class="page-subtitle">Análisis visual de canciones y liderazgo.</p>
+            <button class="btn btn-apply-filters btn-filter-toggle" id="toggle-filters-btn">🔍 Buscar</button>
+            <div class="filters-section hidden" id="reporte-filters-section">
+                 <div class="form-group"><label for="filter-date-start">📅 Fecha Inicio</label><input type="date" id="filter-date-start"></div>
+                <div class="form-group"><label for="filter-date-end">📅 Fecha Fin</label><input type="date" id="filter-date-end"></div>
+                <div class="form-group"><label for="filter-director-reporte">🎤 Director</label><input type="text" id="filter-director-reporte" placeholder="Filtrar por director"></div>
+                 <div class="form-group"><label for="filter-song-reporte">🎵 Canción</label><input type="text" id="filter-song-reporte" placeholder="Filtrar por canción"></div>
+                <div class="form-group"><label for="filter-artist-reporte">🧑‍🎤 Artista</label><input type="text" id="filter-artist-reporte" placeholder="Filtrar por artista"></div>
+                <div class="filter-actions"><button class="btn btn-clear" id="clear-filters-btn-reporte">Limpiar</button><button class="btn btn-apply-filters" id="apply-filters-btn-reporte">Aplicar</button></div>
+            </div>
+            <div class="summary-stats">
+                <div class="summary-item"><div class="value" id="stat-card-1-value">0</div><div class="label" id="stat-card-1-label">Servicios Filtrados</div></div>
+                <div class="summary-item"><div class="value" id="stat-card-2-value">0</div><div class="label" id="stat-card-2-label">Canciones Únicas</div></div>
+            </div>
+            <div class="stats-grid">
+                <div class="chart-card"><h2 id="songs-chart-title">Top Canciones</h2><div class="chart-container"><canvas id="songsChart"></canvas></div></div>
+                <div class="chart-card"><h2>Top Directores</h2><div class="chart-container"><canvas id="directorsChart"></canvas></div></div>
+            </div>
+            <div class="details-section hidden" id="song-details-section"><h2 id="song-details-title"></h2><ul class="details-list" id="song-details-list"></ul><button class="load-more-btn hidden" id="load-more-song-details-btn">Cargar más detalles</button></div>
+            <div class="details-section hidden" id="director-details-section"><h2 id="director-details-title"></h2><ul class="details-list" id="director-details-list"></ul><button class="load-more-btn hidden" id="load-more-director-details-btn">Cargar más detalles</button></div>
+        </main>
+
+        <main id="page-historial" class="page-content hidden">
+            <h2 class="page-title">📜 Historial de Servicios</h2>
+            <p class="page-subtitle">Consulta y analiza los servicios pasados.</p>
+            <button class="btn btn-apply-filters btn-filter-toggle" id="toggle-historial-filters-btn">🔍 Buscar</button>
+            <div class="filters-section hidden" id="historial-filters-section">
+                <div class="form-group"><label for="filter-date-start-historial">📅 Fecha Inicio</label><input type="date" id="filter-date-start-historial"></div>
+                <div class="form-group"><label for="filter-date-end-historial">📅 Fecha Fin</label><input type="date" id="filter-date-end-historial"></div>
+                <div class="form-group"><label for="filter-song">🎵 Canción</label><input type="text" id="filter-song" placeholder="Nombre de canción"></div>
+                <div class="form-group"><label for="filter-artist-historial">🧑‍🎤 Artista</label><input type="text" id="filter-artist-historial" placeholder="Nombre de artista"></div>
+                <div class="form-group"><label for="filter-director">🎤 Director</label><input type="text" id="filter-director" placeholder="Nombre de director"></div>
+                <div class="filter-actions"><button class="btn btn-clear" id="clear-filters-btn-historial">Limpiar</button><button class="btn btn-apply-filters" id="apply-filters-btn-historial">Aplicar</button></div>
+            </div>
+            <div id="results-section-historial"></div>
+            <div id="historial-scroll-trigger" style="height: 50px;"></div>
+            <button class="load-more-btn hidden" id="load-more-historial-btn">Cargar más</button>
+        </main>
+
+        <main id="page-formulario" class="page-content hidden">
+            <h2 class="page-title">📖 Registro de Servicios</h2>
+            <p class="page-subtitle">Añade o edita un servicio seleccionando una fecha.</p>
+            <div id="form-message"></div>
+            
+            <div class="form-group" style="margin-top: var(--space-lg);">
+                <label for="fecha">📅 Fecha del Servicio</label>
+                <input type="date" id="fecha">
+            </div>
+
+            <div id="dynamic-fields" class="hidden"> 
+                <div class="main-info-grid">
+                    <div class="form-group">
+                        <label for="director-input">🎤 Nombre del Director</label>
+                        <input type="text" id="director-input" placeholder="Ej: Juan Pérez">
+                    </div>
+                </div>
+
+                <div class="songs-section" style="margin-top: var(--space-lg);">
+                    <h3 style="margin-bottom: var(--space-md);">🎵 Canciones del Servicio</h3>
+                    <div id="songsList">
+                    </div>
+                    <button class="btn btn-add" id="add-song-btn"><span class="icon">+</span>Añadir Canción</button>
+                </div>
+
+                <div class="musicians-toggle-section" style="margin-top: var(--space-lg);">
+                    <button class="btn" id="toggle-musicians-btn" type="button">✨ Añadir Músicos y Coristas</button>
+                </div>
+
+                <div id="musicians-section" class="hidden" style="margin-top: var(--space-lg);">
+                     <h3 style="margin-bottom: var(--space-md);">🎹 Músicos y Coristas</h3>
+                     <div id="musiciansList">
+                     </div>
+                     <button class="btn btn-add" id="add-musician-btn" type="button"><span class="icon">+</span>Añadir Músico/Corista</button>
+                </div>
+                
+                <div class="actions">
+                    <button class="btn btn-cancel" id="cancel-btn">❌<span class="btn-text"> Cancelar</span></button>
+                    <button class="btn btn-save" id="save-btn">💾<span class="btn-text"> Guardar Servicio</span></button>
+                </div>
+            </div>
+        </main>
+
+    </div>
+    
+    <!-- Modal de Éxito -->
+    <div id="success-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close-btn">×</button>
+            <div class="modal-icon">✅</div>
+            <h2>¡Guardado con Éxito!</h2>
+            <p>El servicio ha sido guardado correctamente.</p>
+            <div class="modal-actions">
+                <button id="modal-action-new" class="modal-action-btn">✍️ Registrar Otro Servicio</button>
+                <button id="modal-action-historial" class="modal-action-btn secondary">📜 Ver Historial</button>
+                <button id="modal-action-reporte" class="modal-action-btn secondary">📈 Ver Reportes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close-btn confirm-close-btn">×</button>
+            <div class="modal-icon">⚠️</div>
+            <h2 id="confirm-modal-title">¿Estás seguro?</h2>
+            <p id="confirm-modal-message">Esta acción no se puede deshacer.</p>
+            <div class="modal-actions">
+                <button id="confirm-modal-cancel-btn" class="modal-action-btn secondary">❌ Cancelar</button>
+                <button id="confirm-modal-ok-btn" class="modal-action-btn danger">🗑️ Sí, Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Información Genérico -->
+    <div id="info-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close-btn info-close-btn">×</button>
+            <div class="modal-icon" id="info-modal-icon"></div>
+            <h2 id="info-modal-title"></h2>
+            <p id="info-modal-message"></p>
+            <div class="modal-actions">
+                <button id="info-modal-ok-btn" class="modal-action-btn">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
