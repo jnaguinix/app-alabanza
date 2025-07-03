@@ -68,7 +68,7 @@
 }
 
 body {
-    font-family: var(--font-family);
+    font-family: var(--font-family), "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; /* AÑADIDO: fuentes de emoji */
     background: var(--color-background);
     min-height: 100vh;
     padding: var(--space-md); /* Se mantiene padding para desktop */
@@ -139,6 +139,8 @@ body {
     position: relative; /* Para el efecto de borde inferior */
     text-transform: uppercase; /* Para un look más moderno */
     letter-spacing: 0.5px;
+    flex: 1; /* Permite que todos los botones nav compartan el espacio igualmente */
+    min-width: 80px; /* Un tamaño mínimo para que no se compriman demasiado */
 }
 
 .main-nav button::after { /* Efecto de subrayado al pasar el ratón */
@@ -170,6 +172,7 @@ body {
     box-shadow: var(--shadow-sm); /* Sombra ligera para la activa */
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
+    flex: 1.2; /* Ligeramente más grande cuando está activo */
 }
 
 .main-nav button.active::after {
@@ -177,20 +180,32 @@ body {
     background-color: var(--color-primary);
 }
 
+/* REFINADO: Estilos del botón de cerrar sesión para ESCRITORIO */
 #logout-btn {
-    border-color: var(--color-danger); /* Mantener el color de peligro */
-    color: var(--color-danger);
-    background: none; /* Asegurar que no tenga fondo por defecto */
+    border: 1px solid var(--color-danger); /* Borde para definir su forma en PC */
+    color: var(--color-danger); /* Texto rojo */
+    background: none; /* Sin fondo sólido por defecto */
+    padding: 10px 20px; /* Igual que otros botones de navegación */
+    flex: 0 0 auto; /* No crece ni encoge, se ajusta al contenido */
+    font-size: var(--font-size-base); /* Tamaño base para el texto */
+    gap: var(--space-xs); /* Espacio entre icono y texto */
 }
 #logout-btn:hover {
-    background-color: var(--color-danger);
-    color: var(--color-text-light);
+    background-color: var(--color-danger); /* Fondo rojo sólido al pasar el ratón */
+    color: var(--color-text-light); /* Texto blanco al pasar el ratón */
+    border-color: var(--color-danger); /* Borde rojo sólido al pasar el ratón */
 }
 #logout-btn::after { /* Quitar el subrayado para logout */
     display: none;
 }
 #logout-btn:hover::after {
     display: none;
+}
+#logout-btn .icon { /* Asegurar tamaño del icono en escritorio */
+    font-size: var(--font-size-base); 
+}
+#logout-btn .btn-text { /* Asegurar que el texto esté visible en escritorio */
+    display: inline;
 }
 
 
@@ -278,6 +293,12 @@ input:focus, select:focus, textarea:focus {
 input::placeholder, textarea::placeholder {
     color: var(--color-text-secondary);
     opacity: 0.7; /* Más suave */
+}
+
+/* Estilo para select placeholders */
+select:invalid,
+select option[value=""] {
+  color: #9ca3af; /* Un color gris más suave, similar a un placeholder */
 }
 
 .filter-actions {
@@ -402,37 +423,16 @@ input::placeholder, textarea::placeholder {
 
 /* NUEVO: Wrapper para campos de autocompletado */
 .input-autocomplete-wrapper {
-    position: relative; /* Establece el contexto de posicionamiento para las sugerencias */
-    flex-grow: 1; /* Permite que ocupe el espacio disponible en flex/grid */
-    min-width: 0; /* Permite que el item se encoja correctamente en flex/grid */
+    position: relative;
+    flex-grow: 1;
+    min-width: 0;
 }
-
-/* ======== CAMBIOS PARA FORMULARIO DE REGISTRO (compactación) ======== */
-/* Contenedor para Fecha y Director */
-.main-info-grid {
-    display: grid;
-    grid-template-columns: 1fr; /* Una columna en móvil */
-    gap: var(--space-md); /* Espacio entre Fecha y Director */
-}
-/* En pantallas más grandes, colocamos Fecha y Director uno al lado del otro */
-@media (min-width: 600px) {
-    .main-info-grid {
-        grid-template-columns: 1fr 1fr; /* Dos columnas de igual tamaño */
-    }
-}
-
-/* Títulos de sección más compactos */
-.songs-section h3, #musicians-section h3 {
-    font-size: 1.1rem; 
-    margin-bottom: var(--space-sm) !important; 
-}
-
 
 /* Filas de Canciones (ahora con 2 inputs) */
 .song-item {
     position: relative;
     display: grid;
-    grid-template-columns: 1fr auto; /* Columna para los inputs, columna para el botón de borrar */
+    grid-template-columns: 1fr auto;
     gap: var(--space-sm);
     margin-bottom: var(--space-md);
     align-items: center;
@@ -441,23 +441,16 @@ input::placeholder, textarea::placeholder {
 /* Contenedor para los campos de canción y artista (grilla interna) */
 .song-details-inputs {
     display: grid;
-    grid-template-columns: 1fr; /* Una columna en móvil (apilados) */
+    grid-template-columns: 1fr;
     gap: var(--space-sm);
 }
 
 /* En pantallas más grandes, los campos de canción y artista van uno al lado del otro */
 @media (min-width: 600px) {
     .song-details-inputs {
-        grid-template-columns: 2fr 1fr; /* Canción más grande que artista */
+        grid-template-columns: 2fr 1fr;
     }
 }
-
-/* Los inputs dentro de esta grilla ocupan todo el ancho de su celda */
-/* Se eliminaron .song-input, .artist-input de aquí ya que input, select, textarea los cubren globalmente */
-/* .song-input, .artist-input {
-    width: 100%; 
-} */
-/* ======== FIN DE CAMBIOS PARA FORMULARIO DE REGISTRO (compactación) ======== */
 
 /* Autocompletado genérico */
 .autocomplete-suggestions { 
@@ -468,42 +461,77 @@ input::placeholder, textarea::placeholder {
     background-color: var(--color-surface); 
     border: 1px solid var(--color-border); 
     border-top: none; 
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm); /* Menos curvatura */
-    box-shadow: var(--shadow-md); /* Sombra más bonita */
-    max-height: 200px; /* Más espacio para sugerencias */
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    max-height: 200px;
     overflow-y: auto; 
-    z-index: 1000; /* Asegurarse de que esté por encima */
+    z-index: 1000;
 }
 .autocomplete-item { 
-    padding: var(--space-sm) var(--space-md); /* Más padding */
+    padding: var(--space-sm) var(--space-md);
     cursor: pointer; 
     font-size: var(--font-size-base);
     color: var(--color-text-primary);
 }
 .autocomplete-item:hover, .autocomplete-item.active { 
-    background-color: var(--color-light-gray-bg); /* Fondo más suave en hover */
-    color: var(--color-primary); /* Texto primario en hover */
+    background-color: var(--color-light-gray-bg);
+    color: var(--color-primary);
 }
 
-/* Tarjetas de Servicio del Historial */
+/* --- ESTILOS DEL HISTORIAL --- */
 .service-card {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-md); /* Más curvatura para las tarjetas */
-    padding: var(--space-lg); /* Más padding */
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
     margin-bottom: var(--space-md);
-    box-shadow: var(--shadow-sm); /* Sombra inicial suave */
+    box-shadow: var(--shadow-sm);
     transition: transform var(--transition-speed), box-shadow var(--transition-speed);
 }
 .service-card:hover {
-    transform: translateY(-5px); /* Elevación más pronunciada */
-    box-shadow: var(--shadow-md); /* Sombra más fuerte en hover */
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
 }
-.service-card h3 {
+.service-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-xs);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border);
+}
+.service-card-header h3 {
     font-size: var(--font-size-lg);
     color: var(--color-primary);
-    margin-bottom: var(--space-xs);
+    margin: 0;
     font-weight: 700;
+}
+.service-card-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: color var(--transition-speed), transform var(--transition-speed);
+}
+.btn-icon:hover {
+    transform: scale(1.15);
+}
+.edit-service-btn {
+    color: var(--color-primary);
+}
+.edit-service-btn:hover {
+    color: var(--color-primary-dark);
+}
+.delete-service-btn {
+    color: var(--color-secondary);
+}
+.delete-service-btn:hover {
+    color: var(--color-danger);
 }
 .service-details p {
     font-size: var(--font-size-sm);
@@ -515,16 +543,16 @@ input::placeholder, textarea::placeholder {
     list-style: none;
     padding: var(--space-xs) 0 0 0;
     margin-top: var(--space-sm);
-    border-top: 1px dashed var(--color-border); /* Borde más suave */
+    border-top: 1px dashed var(--color-border);
 }
 .songs-list li {
-    background: var(--color-light-gray-bg); /* Fondo para elementos de lista */
+    background: var(--color-light-gray-bg);
     padding: var(--space-xs) var(--space-sm);
     border-radius: var(--radius-xs);
     margin-bottom: var(--space-xs);
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
-    display: flex; /* Para alinear el icono y el texto */
+    display: flex;
     align-items: center;
     gap: var(--space-xxs);
 }
@@ -532,7 +560,7 @@ input::placeholder, textarea::placeholder {
     text-align: center;
     color: var(--color-text-secondary);
     padding: var(--space-xl);
-    background: var(--color-light-gray-bg); /* Fondo más claro */
+    background: var(--color-light-gray-bg);
     border-radius: var(--radius-md);
     font-weight: 500;
 }
@@ -540,16 +568,16 @@ input::placeholder, textarea::placeholder {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-around;
-    gap: var(--space-md); /* Espacio ajustado */
+    gap: var(--space-md);
     margin-bottom: var(--space-lg);
-    background: var(--color-light-gray-bg); /* Fondo sutil para el área de stats */
+    background: var(--color-light-gray-bg);
     padding: var(--space-md);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
-    text-align: center; /* <<< AÑADIR ESTA LÍNEA */
+    text-align: center;
 }
 .summary-item .value {
-    font-size: 36px; /* Más grande */
+    font-size: 36px;
     font-weight: 700;
     color: var(--color-primary);
     margin-bottom: var(--space-xxs);
@@ -563,7 +591,7 @@ input::placeholder, textarea::placeholder {
     background: var(--color-surface);
     padding: var(--space-lg);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md); /* Sombra más definida */
+    box-shadow: var(--shadow-md);
     border: 1px solid var(--color-border);
 }
 .chart-card h2 {
@@ -576,7 +604,7 @@ input::placeholder, textarea::placeholder {
 .chart-container {
     position: relative;
     width: 100%;
-    height: 350px; /* Un poco más alto para los gráficos */
+    height: 350px;
 }
 .stats-grid {
     display: grid;
@@ -589,7 +617,7 @@ input::placeholder, textarea::placeholder {
     }
 }
 .details-section {
-    background: var(--color-light-gray-bg); /* Fondo más claro */
+    background: var(--color-light-gray-bg);
     padding: var(--space-lg);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
@@ -607,11 +635,11 @@ input::placeholder, textarea::placeholder {
     padding: 0;
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--space-sm); /* Menos espacio */
+    gap: var(--space-sm);
 }
 @media (min-width: 640px) {
     .details-list {
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Columnas un poco más grandes */
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     }
 }
 .details-item {
@@ -663,62 +691,50 @@ input::placeholder, textarea::placeholder {
 .hidden {
     display: none !important;
 }
+
+/* === DISEÑO COMPACTO PARA MUSICIAN CARD === */
 .musician-card {
     background: var(--color-light-gray-bg);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: var(--space-md);
-    margin-bottom: var(--space-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
+    padding: var(--space-sm);
+    margin-bottom: var(--space-sm);
     box-shadow: var(--shadow-sm);
-}
-.musician-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
     gap: var(--space-sm);
-    padding-bottom: var(--space-sm);
-    border-bottom: 1px solid var(--color-border);
-}
-.musician-card-header h4 {
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    margin: 0;
-    display: flex;
     align-items: center;
-    gap: var(--space-xs);
-    color: var(--color-primary);
 }
+
 .musician-card .remove-musician-btn {
-    padding: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
     background: var(--color-secondary);
     color: var(--color-text-light);
     border: none;
-    font-size: 24px;
-    line-height: 1;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
     cursor: pointer;
-    transition: background-color var(--transition-speed);
+    transition: all var(--transition-speed);
     box-shadow: var(--shadow-sm);
+    font-size: 20px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+
 .musician-card .remove-musician-btn:hover {
     background: var(--color-danger);
-    box-shadow: var(--shadow-md);
+    transform: scale(1.1);
 }
+
 #musiciansList {
     display: grid;
     grid-template-columns: 1fr;
     gap: var(--space-md);
 }
-@media (min-width: 768px) {
-    #musiciansList {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
+
 .band-toggle-btn {
     background: none;
     border: none;
@@ -934,7 +950,7 @@ input::placeholder, textarea::placeholder {
         border-radius: 0;
         box-shadow: none;
     }
-    .page-content { padding: var(--space-md); }
+    .page-content { padding: var(--space-md) var(--space-sm); }
     .app-header h1 { font-size: 22px; }
     .app-header p { font-size: 14px; }
     .filter-actions {
@@ -944,70 +960,313 @@ input::placeholder, textarea::placeholder {
     .filter-actions .btn {
         width: 100%;
     }
-    /* Reducimos la altura del contenedor del gráfico en móvil */
     .chart-container { 
         height: 250px; 
     }
-    .main-nav button { 
-        padding: var(--space-xs) var(--space-sm); 
-        font-size: var(--font-size-sm); 
-        min-height: 40px;
+
+    .main-nav {
+        padding: var(--space-xs);
+        justify-content: space-between;
+        flex-wrap: nowrap;
+        gap: var(--space-xxs);
     }
-    .main-nav button::after { width: 0 !important; }
+
+    .main-nav button {
+        background: none;
+        border: none;
+        padding: 8px 6px;
+        font-size: var(--font-size-sm);
+        min-height: 40px;
+        flex: 1;
+        text-align: center;
+    }
+
+    .main-nav button .btn-text {
+        display: none !important; 
+    }
+    .main-nav button .icon {
+        margin: 0; 
+        font-size: var(--font-size-base);
+    }
+
     .main-nav button.active {
         background-color: var(--color-primary);
         color: var(--color-text-light);
+        box-shadow: var(--shadow-sm);
+        border-radius: var(--radius-sm);
     }
-
+    .main-nav button.active::after {
+        display: none !important;
+    }
+    
     .main-app-container.active-reporte .app-header,
     .main-app-container.active-historial .app-header,
-    .main-app-container.active-formulario .app-header { display: none; }
+    .main-app-container.active-formulario .app-header {
+        display: none;
+    }
+
     .main-app-container.active-reporte .main-nav,
     .main-app-container.active-historial .main-nav,
-    .main-app-container.active-formulario .main-nav { margin-top: 0; }
-    .main-app-container.active-reporte .page-content,
-    .main-app-container.active-historial .page-content,
-    .main-app-container.active-formulario .page-content { padding-top: var(--space-lg); }
-
-    /* Estilo del botón de toggle de filtros en móvil */
-    .btn-filter-toggle { 
-        width: 100%; 
-        margin-bottom: var(--space-md);
-        background: var(--color-primary);
-        color: var(--color-text-light); 
+    .main-app-container.active-formulario .main-nav {
+        margin-top: 0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: var(--color-light-gray-bg);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    #logout-btn {
+        background: none;
+        color: var(--color-danger);
+        border: none; 
+        width: 40px;
+        height: 40px;
+        min-height: 40px; 
+        padding: 0; 
+        border-radius: var(--radius-sm);
+        flex-shrink: 0; 
+        box-shadow: none;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 20px; 
+        flex: 0 0 40px;
+    }
+    #logout-btn .icon {
+        font-size: 20px; 
+    }
+    #logout-btn:hover { 
+        background-color: var(--color-danger);
+        color: var(--color-text-light);
         box-shadow: var(--shadow-sm);
     }
-    /* Estado activo para el botón de toggle de filtros en móvil */
-    .btn-filter-toggle.active-filter-toggle {
-        background-color: var(--color-primary-light);
+
+    .page-title {
+        font-size: var(--font-size-base); 
+        margin-bottom: var(--space-xs); 
+        padding-bottom: var(--space-xs); 
     }
-    /* Hover para el estado activo en móvil */
-    .btn-filter-toggle.active-filter-toggle:hover {
-        background-color: var(--color-primary);
+    .page-subtitle {
+        font-size: var(--font-size-sm); 
+        margin-bottom: var(--space-md); 
+    }
+    .form-step .step-title { 
+        font-size: var(--font-size-base); 
+        margin-bottom: var(--space-sm) !important; 
+        padding-bottom: var(--space-xxs); 
+    }
+    
+    .filters-section {
+        padding: var(--space-md) var(--space-sm); 
+    }
+    .form-group {
+        gap: var(--space-xxs); 
+    }
+
+    /* === REGLAS DE COMPACTACIÓN DE MÚSICO CARD EN MÓVIL === */
+    .musician-card {
+        grid-template-columns: 1fr; /* Apilar selects */
+        padding: var(--space-sm);
+        padding-right: 48px; /* Espacio para el botón de eliminar flotante */
+        gap: var(--space-sm);
+    }
+
+    .musician-card .remove-musician-btn {
+        position: absolute;
+        top: 50%;
+        right: var(--space-sm);
+        transform: translateY(-50%);
+        background-color: var(--color-danger);
+        color: var(--color-text-light);
+    }
+
+    #add-musician-btn {
+        font-size: var(--font-size-sm); 
+        min-height: 40px; 
+        padding: var(--space-xs) var(--space-sm); 
+        margin-top: var(--space-sm); 
     }
 }
-/* Estilos para la tarjeta del historial de servicios */
-.service-card-header {
+/* ==========================================================================
+   ESTILOS DEL ASISTENTE DEL FORMULARIO (WIZARD)
+   ========================================================================== */
+
+#form-wizard {
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+}
+
+.form-step-indicator-container {
+    margin-bottom: var(--space-xl);
+}
+
+.form-step-indicator {
+    list-style: none;
+    padding: 0;
+    margin: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-xs);
-    padding-bottom: var(--space-xs);
-    border-bottom: 1px solid var(--color-border);
-}
-/* Estilo para que el botón de eliminar sea solo el ícono */
-.delete-service-btn {
-    background: none;
-    border: none;
-    padding: 0;
-    color: var(--color-secondary);
-    font-size: 1.4rem;
-    cursor: pointer;
-    transition: color var(--transition-speed), transform var(--transition-speed);
+    counter-reset: step;
 }
 
-/* Efecto visual cuando el cursor pasa por encima del ícono */
-.delete-service-btn:hover {
-    color: var(--color-danger);
-    transform: scale(1.15);
+/* CAMBIO: Ajustar el ancho de los ítems del indicador para 3 pasos */
+.form-step-indicator li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 33.33%; /* Ajustado para 3 pasos */
+    position: relative;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.form-step-indicator li span {
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    display: block;
+    text-align: center;
+    border-radius: 50%;
+    background-color: var(--color-light-gray-bg);
+    border: 2px solid var(--color-border);
+    margin-bottom: var(--space-xs);
+    font-weight: 700;
+    transition: all var(--transition-speed);
+}
+
+/* Conectores entre pasos */
+.form-step-indicator li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background-color: var(--color-border);
+    top: 20px;
+    left: 50%;
+    z-index: -1;
+    transition: all var(--transition-speed);
+}
+
+/* Estado Activo */
+.form-step-indicator li.active span {
+    background-color: var(--color-primary);
+    color: var(--color-text-light);
+    border-color: var(--color-primary-dark);
+    transform: scale(1.1);
+}
+.form-step-indicator li.active {
+    color: var(--color-text-primary);
+    font-weight: 700;
+}
+
+/* Estado Completado */
+.form-step-indicator li.completed span {
+    background-color: var(--color-success);
+    color: var(--color-text-light);
+    border-color: var(--color-success-dark);
+}
+
+.form-step-indicator li.completed::after {
+    background-color: var(--color-success);
+}
+
+/* Título y Contenedor de Pasos */
+.step-title {
+    margin-bottom: var(--space-lg);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    text-align: center;
+    color: var(--color-primary);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-sm);
+}
+
+/* CAMBIO: Estilo para el nuevo subtítulo de sección */
+.section-subtitle {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-top: var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-sm);
+}
+
+#form-steps-container {
+    min-height: 300px; /* Evita que el contenedor salte al cambiar de paso */
+    padding-bottom: var(--space-lg);
+}
+
+.form-step {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.form-navigation {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-lg);
+    margin-top: var(--space-lg);
+    display: flex;
+    justify-content: space-between;
+}
+.form-navigation .btn-primary { 
+    background-color: var(--color-primary); 
+    color: var(--color-text-light);
+}
+.form-navigation .btn-primary:hover { background-color: var(--color-primary-dark); }
+.form-navigation .btn-secondary { 
+    background-color: var(--color-secondary); 
+    color: var(--color-text-light);
+}
+.form-navigation .btn-secondary:hover { background-color: var(--color-secondary-dark); }
+
+
+/* Estilos para la sección de resumen */
+#summary-section {
+    padding: var(--space-md);
+    background: var(--color-light-gray-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+#summary-section h4 {
+    font-size: var(--font-size-base);
+    color: var(--color-primary);
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-xs);
+}
+#summary-section p, #summary-section ul {
+    margin-bottom: var(--space-md);
+}
+#summary-section ul {
+    list-style: none;
+    padding-left: 0;
+}
+#summary-section li {
+    padding: var(--space-xs);
+    background: var(--color-surface);
+    border-radius: var(--radius-xs);
+    margin-bottom: var(--space-xxs);
+}
+/* Ajustes para que las acciones de los modales se apilen en pantallas muy pequeñas */
+@media (max-width: 479px) { /* Por debajo de 480px, apilar las acciones del modal */
+    .modal-actions {
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+    .modal-actions button.modal-action-btn {
+        width: 100%; /* Botones a ancho completo */
+    }
 }

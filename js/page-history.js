@@ -1,9 +1,10 @@
 // ==========================================================================
-// MÓDULO DE PÁGINA: Historial (Con Filtro de Artista)
+// MÓDULO DE PÁGINA: Historial (Con Edición de Servicio)
 // ==========================================================================
 import { state } from './main.js';
-import { fetchFullServiceDetails, searchSongs, searchArtists, deleteService } from './api.js';
-import { normalizeString, formatDate, getDayOfWeek, setupAutocomplete, setupFilterToggle, showConfirmModal, showInfoModal, showPage } from './ui.js';
+// CORRECCIÓN DEFINITIVA: Importar searchSongsWithArtist en lugar de searchSongs
+import { fetchFullServiceDetails, deleteService, searchSongsWithArtist, searchArtists } from './api.js'; 
+import { formatDate, getDayOfWeek, setupAutocomplete, setupFilterToggle, showConfirmModal, showInfoModal, showPage } from './ui.js';
 
 const historialElements = {
     pageElement: document.getElementById('page-historial'),
@@ -43,7 +44,10 @@ function renderServicesHistorial(servicesToDisplay, append = false) {
         card.innerHTML = `
             <div class="service-card-header">
                 <h3>📅 ${formatDate(service.fecha)} (${getDayOfWeek(service.fecha)})</h3>
-                <button class="btn btn-danger delete-service-btn" data-service-id="${service.id}" title="Eliminar Servicio">🗑️</button>
+                <div class="service-card-actions">
+                    <button class="btn-icon edit-service-btn" data-fecha="${service.fecha}" title="Editar Servicio">✏️</button>
+                    <button class="btn-icon delete-service-btn" data-service-id="${service.id}" title="Eliminar Servicio">🗑️</button>
+                </div>
             </div>
             <div class="service-details"><p><strong>🎤 Director:</strong> ${service.director || 'N/A'}</p></div>
             <ul class="songs-list">${songsHTML}</ul>
@@ -93,7 +97,7 @@ async function fetchHistorialServices(isNewFilter = false) {
         }
     } catch (error) {
         console.error("Error al cargar historial:", error);
-        alert("No se pudieron cargar los servicios del historial.");
+        historialElements.resultsSection.innerHTML = '<div class="no-results">Error al cargar servicios.</div>';
     } finally {
         state.isLoadingHistorial = false;
     }
@@ -108,7 +112,6 @@ export function initializePage() {
 }
 
 export function initializePageListeners() {
-    // **CORRECCIÓN:** Se elimina la guarda if(!state.user) para que los listeners SIEMPRE se asignen.
     historialElements.applyBtn.addEventListener('click', () => fetchHistorialServices(true));
     historialElements.clearBtn.addEventListener('click', () => {
         historialElements.filterDateStart.value = '';
@@ -142,6 +145,14 @@ export function initializePageListeners() {
             toggleBtn.innerHTML = `<span class="chevron">${isExpanded ? '▼' : '▶'}</span> ${isExpanded ? 'Ocultar Músicos' : `Ver Músicos (${bandSize})`}`;
             return;
         }
+        
+        const editBtn = e.target.closest('.edit-service-btn');
+        if (editBtn) {
+            const fechaParaEditar = editBtn.dataset.fecha;
+            state.dateToEdit = fechaParaEditar;
+            showPage('page-formulario');
+            return;
+        }
 
         const deleteBtn = e.target.closest('.delete-service-btn');
         if (deleteBtn) {
@@ -150,8 +161,9 @@ export function initializePageListeners() {
                 async () => {
                     try {
                         await deleteService(serviceId);
-                        deleteBtn.closest('.service-card').remove();
-                        showInfoModal('¡Éxito!', 'Servicio eliminado correctamente.', 'success');
+                        showInfoModal('¡Éxito!', 'Servicio eliminado correctamente.', 'success', () => {
+                           fetchHistorialServices(true);
+                        });
                     } catch (error) {
                         showInfoModal('Error', 'Error al eliminar el servicio. Por favor, intenta de nuevo.', 'error');
                         console.error("Error al eliminar servicio:", error);
@@ -166,6 +178,11 @@ export function initializePageListeners() {
         return state.allPeople.map(p => p.nombre_persona).filter(name => name.toLowerCase().includes(lowerCaseSearchTerm));
     });
 
-    setupAutocomplete(historialElements.filterSong, searchSongs);
+    // CORRECCIÓN: Actualizar el autocompletado de canciones en historial
+    setupAutocomplete(historialElements.filterSong, searchSongsWithArtist, (selectedSong) => {
+        historialElements.filterSong.value = selectedSong.song_name;
+        historialElements.filterArtist.value = selectedSong.artist_name;
+    });
+
     setupAutocomplete(historialElements.filterArtist, searchArtists);
 }

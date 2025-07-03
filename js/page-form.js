@@ -1,67 +1,252 @@
 // ==========================================================================
-// MÓDULO DE PÁGINA: Formulario
+// MÓDULO DE PÁGINA: Formulario (con Autocompletado Inteligente)
 // ==========================================================================
 
 import { state } from './main.js';
-import { saveFullService, fetchFullServiceDetails, searchSongs, searchArtists } from './api.js';
+// CAMBIO: Importar la nueva función y eliminar la antigua
+import { saveFullService, fetchFullServiceDetails, searchSongsWithArtist, searchArtists } from './api.js'; 
 import { showMessage, setupAutocomplete, showPage, closeModal } from './ui.js';
 
-const formElements = {
-    pageElement: document.getElementById('page-formulario'),
+// ... (El resto del código hasta la función addSong no cambia) ...
+
+const domElements = {
     dateInput: document.getElementById('fecha'),
-    dynamicFields: document.getElementById('dynamic-fields'),
+    formWizard: document.getElementById('form-wizard'),
+    formMessage: document.getElementById('form-message'),
+    stepIndicator: document.getElementById('step-indicator'),
+    formSteps: document.querySelectorAll('.form-step'),
     directorInput: document.getElementById('director-input'),
     songsList: document.getElementById('songsList'),
     addSongBtn: document.getElementById('add-song-btn'),
-    toggleMusiciansBtn: document.getElementById('toggle-musicians-btn'),
-    musiciansSection: document.getElementById('musicians-section'),
     musiciansList: document.getElementById('musiciansList'),
     addMusicianBtn: document.getElementById('add-musician-btn'),
-    cancelBtn: document.getElementById('cancel-btn'),
+    summarySection: document.getElementById('summary-section'),
+    prevBtn: document.getElementById('prev-btn'),
+    nextBtn: document.getElementById('next-btn'),
     saveBtn: document.getElementById('save-btn'),
-    formMessage: document.getElementById('form-message'),
+    successModal: document.getElementById('success-modal'),
     modalCloseBtn: document.querySelector('#success-modal .modal-close-btn'),
     modalActionNewBtn: document.getElementById('modal-action-new'),
     modalActionHistorialBtn: document.getElementById('modal-action-historial'),
     modalActionReporteBtn: document.getElementById('modal-action-reporte'),
 };
 
-const instrumentIconMap = {
-    'default': '🎶', 'Director': '🎤', 'Bateria': '🥁', 'Bajo': '🎸', 
-    'Piano': '🎹', 'Guitarra Acustica': '🎸', 'Guitarra Electrica': '🎸', 'Corista': '🗣️'
+const TOTAL_STEPS = 3;
+let currentStep = 1;
+
+const formData = {
+    date: null, directorName: '', songs: [], musicians: []
 };
 
-let formActionListenersAssigned = false;
-let modalListenersAssigned = false;
+function showStep(stepNumber) {
+    if (!document.getElementById(`form-step-${stepNumber}`)) return;
+    
+    domElements.formSteps.forEach(step => step.classList.add('hidden'));
+    document.getElementById(`form-step-${stepNumber}`).classList.remove('hidden');
 
+    const indicators = domElements.stepIndicator.querySelectorAll('li');
+    indicators.forEach((indicator, index) => {
+        indicator.classList.remove('active', 'completed');
+        if (index + 1 < stepNumber) {
+            indicator.classList.add('completed');
+        } else if (index + 1 === stepNumber) {
+            indicator.classList.add('active');
+        }
+    });
+
+    domElements.prevBtn.classList.toggle('hidden', stepNumber === 1);
+    domElements.nextBtn.classList.toggle('hidden', stepNumber === TOTAL_STEPS);
+    domElements.saveBtn.classList.toggle('hidden', stepNumber !== TOTAL_STEPS);
+}
+
+function handleNextStep() {
+    if (validateCurrentStep()) {
+        saveStepData();
+        currentStep++;
+        if (currentStep === TOTAL_STEPS) {
+            renderSummary();
+        }
+        showStep(currentStep);
+        showMessage(domElements.formMessage, '');
+    }
+}
+
+function handlePrevStep() {
+    if (currentStep > 1) {
+        saveStepData();
+        currentStep--;
+        showStep(currentStep);
+        showMessage(domElements.formMessage, '');
+    }
+}
+
+function validateCurrentStep() {
+    showMessage(domElements.formMessage, ''); 
+    
+    if (currentStep === 1) {
+        if (!domElements.directorInput.value.trim()) {
+            showMessage(domElements.formMessage, 'El nombre del director es obligatorio.', 'error');
+            return false;
+        }
+        const songs = [...domElements.songsList.querySelectorAll('.song-input')].map(input => input.value.trim());
+        if (songs.length === 0 || songs.every(s => !s)) {
+            showMessage(domElements.formMessage, 'Debes añadir al menos una canción.', 'error');
+            return false;
+        }
+    }
+    return true;
+}
+
+function saveStepData() {
+    switch (currentStep) {
+        case 1:
+            formData.directorName = domElements.directorInput.value.trim();
+            formData.songs = [...domElements.songsList.querySelectorAll('.song-item')]
+                .map(item => ({ name: item.querySelector('.song-input').value.trim(), artist: item.querySelector('.artist-input').value.trim() || 'Desconocido' }))
+                .filter(song => song.name);
+            break;
+        case 2:
+            formData.musicians = [...domElements.musiciansList.querySelectorAll('.musician-card')]
+                .map(card => ({ instrumento_id: card.querySelector('.instrument-select').value, persona_id: card.querySelector('.person-select').value }))
+                .filter(m => m.instrumento_id && m.persona_id);
+            break;
+    }
+}
+
+function renderSummary() {
+    saveStepData(2);
+    let songsHTML = '<h4>Canciones</h4><ul>' + (formData.songs.map(s => `<li>${s.name} (${s.artist})</li>`).join('') || '<li>No se añadieron canciones.</li>') + '</ul>';
+    
+    let musiciansHTML = '<h4>Músicos y Coristas</h4><ul>' + (formData.musicians.map(m => {
+        const person = state.allPeople.find(p => p.id == m.persona_id);
+        const instrument = state.allInstruments.find(i => i.id == m.instrumento_id) || { nombre_instrumento: 'Voz' };
+        return `<li><strong>${instrument.nombre_instrumento}:</strong> ${person?.nombre_persona || 'N/A'}</li>`;
+    }).join('') || '<li>No se añadieron músicos.</li>') + '</ul>';
+    
+    const displayDate = formData.date ? new Date(formData.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric'}) : 'N/A';
+    domElements.summarySection.innerHTML = `<p><strong>Fecha:</strong> ${displayDate}</p><p><strong>Director:</strong> ${formData.directorName}</p>${songsHTML}${musiciansHTML}`;
+}
+
+async function handleSave() {
+    domElements.saveBtn.disabled = true;
+    domElements.saveBtn.textContent = 'Guardando...';
+
+    try {
+        await saveFullService({
+            p_fecha: formData.date,
+            p_director_name: formData.directorName,
+            p_songs_data: formData.songs,
+            p_musicians_list: formData.musicians
+        });
+        resetAndHideWizard(true);
+        domElements.successModal.classList.remove('hidden');
+        showMessage(domElements.formMessage, '');
+    } catch (error) {
+        showMessage(domElements.formMessage, `Error al guardar: ${error.message}`, 'error');
+    } finally {
+        domElements.saveBtn.disabled = false;
+        domElements.saveBtn.innerHTML = '💾<span class="btn-text"> Guardar Servicio</span>';
+    }
+}
+
+function resetFormForNewEntry(keepDate = false) {
+    if (!keepDate) {
+        domElements.dateInput.value = '';
+    }
+    domElements.formWizard.classList.add('hidden');
+    domElements.directorInput.value = '';
+    domElements.songsList.innerHTML = '';
+    domElements.musiciansList.innerHTML = '';
+    currentStep = 1;
+    Object.assign(formData, { directorName: '', songs: [], musicians: [] });
+    showMessage(domElements.formMessage, '');
+}
+
+function resetAndHideWizard(keepDate = false) {
+    resetFormForNewEntry(keepDate);
+    state.dateToEdit = null;
+}
+
+function populateFormWithData(serviceData) {
+    resetFormForNewEntry(true);
+    
+    domElements.directorInput.value = serviceData.director || '';
+
+    domElements.songsList.innerHTML = '';
+    if (serviceData.canciones && serviceData.canciones.length > 0) {
+        serviceData.canciones.forEach(songString => {
+            const match = songString.match(/(.*) \((.*)\)/);
+            if (match) {
+                addSong({ name: match[1], artist: match[2] });
+            } else {
+                addSong({ name: songString, artist: 'Desconocido' });
+            }
+        });
+    } else {
+        addSong();
+    }
+
+    domElements.musiciansList.innerHTML = '';
+    if (serviceData.banda && serviceData.banda.length > 0) {
+        serviceData.banda.forEach(musico => {
+            const instrument = state.allInstruments.find(i => i.nombre_instrumento === musico.instrumento_nombre);
+            const person = state.allPeople.find(p => p.nombre_persona === musico.persona_nombre);
+            addMusicianCard(instrument?.id, person?.id);
+        });
+    }
+    
+    domElements.formWizard.classList.remove('hidden');
+    showStep(1);
+    showMessage(domElements.formMessage, 'Editando servicio existente.', 'info');
+}
+
+async function handleDateChange(e) {
+    const selectedDate = e.target.value;
+    if (!selectedDate) {
+        resetAndHideWizard();
+        return;
+    }
+    
+    formData.date = selectedDate;
+
+    try {
+        const [existingService] = await fetchFullServiceDetails({ _start_date: selectedDate, _end_date: selectedDate, _limit: 1 });
+        
+        if (existingService) {
+            populateFormWithData(existingService);
+        } else {
+            resetFormForNewEntry(true);
+            addSong();
+            domElements.formWizard.classList.remove('hidden');
+            showStep(1);
+        }
+    } catch (error) {
+        showMessage(domElements.formMessage, 'Error al verificar el servicio.', 'error');
+        resetAndHideWizard(true);
+    }
+}
+
+
+// CAMBIO: La función addSong ahora usa el nuevo autocompletado inteligente
 function addSong(song = { name: '', artist: '' }) {
     const songItem = document.createElement('div');
     songItem.className = 'song-item';
-    
-    songItem.innerHTML = `
-        <div class="song-details-inputs">
-            <div class="input-autocomplete-wrapper">
-                <input type="text" class="song-input" placeholder="Nombre de la canción" value="${song.name || ''}">
-            </div>
-            <div class="input-autocomplete-wrapper">
-                <input type="text" class="artist-input" placeholder="Artista" value="${song.artist || ''}">
-            </div>
-        </div>
-        <button type="button" class="btn btn-danger remove-song-btn"><span class="icon">×</span></button>
-    `;
-    
-    formElements.songsList.appendChild(songItem);
+    songItem.innerHTML = `<div class="song-details-inputs"><div class="input-autocomplete-wrapper"><input type="text" class="song-input" placeholder="Nombre de la canción" value="${song.name || ''}"></div><div class="input-autocomplete-wrapper"><input type="text" class="artist-input" placeholder="Artista" value="${song.artist || ''}"></div></div><button type="button" class="btn btn-danger remove-song-btn"><span>×</span></button>`;
+    domElements.songsList.appendChild(songItem);
     
     const songInput = songItem.querySelector('.song-input');
     const artistInput = songItem.querySelector('.artist-input');
 
-    setupAutocomplete(songInput, searchSongs);
-    setupAutocomplete(artistInput, searchArtists);
+    // Configura el autocompletado para el campo de la canción
+    setupAutocomplete(songInput, searchSongsWithArtist, (selectedSong) => {
+        // Al seleccionar, rellena ambos campos
+        songInput.value = selectedSong.song_name;
+        artistInput.value = selectedSong.artist_name;
+    });
     
-    if (!song.name && !song.artist) {
-        songInput.focus();
-    }
-};
+    // El autocompletado para el artista sigue funcionando de forma independiente
+    setupAutocomplete(artistInput, searchArtists);
+}
 
 function addMusicianCard(instrumentoId = '', personaId = '') {
     const card = document.createElement('div');
@@ -70,177 +255,70 @@ function addMusicianCard(instrumentoId = '', personaId = '') {
     const peopleOptions = state.allPeople.map(p => `<option value="${p.id}" ${p.id == personaId ? 'selected' : ''}>${p.nombre_persona}</option>`).join('');
     
     card.innerHTML = `
-        <div class="musician-card-header">
-            <h4><span class="instrument-icon"></span><span class="instrument-name"></span></h4>
-            <button type="button" class="btn btn-danger remove-musician-btn">×</button>
-        </div>
-        <div class="form-group"><label>Instrumento / Voz</label><select class="instrument-select"><option value="">-- Seleccionar --</option>${instrumentOptions}</select></div>
-        <div class="form-group"><label>Persona</label><select class="person-select"><option value="">-- Seleccionar --</option>${peopleOptions}</select></div>
+        <select class="instrument-select" required>
+            <option value="" disabled ${!instrumentoId ? 'selected' : ''}>Instrumento / Voz</option>
+            ${instrumentOptions}
+        </select>
+        <select class="person-select" required>
+            <option value="" disabled ${!personaId ? 'selected' : ''}>Persona</option>
+            ${peopleOptions}
+        </select>
+        <button type="button" class="remove-musician-btn">×</button>
     `;
     
-    const instrumentSelect = card.querySelector('.instrument-select');
-    const updateCardHeader = () => {
-        const selectedOption = instrumentSelect.options[instrumentSelect.selectedIndex];
-        if (selectedOption && selectedOption.value) {
-            const instrumentName = selectedOption.text;
-            card.querySelector('.instrument-icon').textContent = instrumentIconMap[instrumentName] || instrumentIconMap.default;
-            card.querySelector('.instrument-name').textContent = instrumentName;
-        } else {
-            card.querySelector('.instrument-icon').textContent = instrumentIconMap.default;
-            card.querySelector('.instrument-name').textContent = "Nuevo Músico";
-        }
-    };
-    instrumentSelect.addEventListener('change', updateCardHeader);
-    card.querySelector('.remove-musician-btn').addEventListener('click', () => card.remove());
-    formElements.musiciansList.appendChild(card);
-    updateCardHeader();
-};
-
-async function handleSave() {
-    const date = formElements.dateInput.value;
-    const directorName = formElements.directorInput.value.trim();
-    
-    const songsData = [...formElements.songsList.querySelectorAll('.song-item')].map(item => ({ name: item.querySelector('.song-input').value.trim(), artist: item.querySelector('.artist-input').value.trim() })).filter(song => song.name);
-    const musiciansData = [...formElements.musiciansList.querySelectorAll('.musician-card')].map(card => ({ instrumento_id: card.querySelector('.instrument-select').value, persona_id: card.querySelector('.person-select').value })).filter(m => m.instrumento_id && m.persona_id);
-
-    if (!date || !directorName || songsData.length === 0) {
-        showMessage(formElements.formMessage, 'Error: Fecha, director y al menos una canción son obligatorios.', 'error');
-        return;
-    }
-    
-    formElements.saveBtn.disabled = true;
-    formElements.saveBtn.innerHTML = 'Guardando...';
-    
-    try {
-        await saveFullService({ p_fecha: date, p_director_name: directorName, p_songs_data: songsData, p_musicians_list: musiciansData });
-        cancelForm(); 
-        document.getElementById('success-modal').classList.remove('hidden'); 
-    } catch (error) {
-        showMessage(formElements.formMessage, `Error al guardar: ${error.message}`, 'error');
-    } finally {
-        formElements.saveBtn.disabled = false;
-        formElements.saveBtn.innerHTML = '💾<span class="btn-text"> Guardar Servicio</span>';
-    }
+    domElements.musiciansList.appendChild(card);
 }
 
-async function handleDateChange(e) {
-    const selectedDate = e.target.value;
-    if (!selectedDate) {
-        formElements.dynamicFields.classList.add('hidden');
-        resetForm();
-        return;
-    }
-    
-    formElements.dynamicFields.classList.remove('hidden');
-    formElements.formMessage.textContent = 'Cargando datos del servicio...';
-    formElements.formMessage.style.display = 'block';
-    formElements.formMessage.style.backgroundColor = 'var(--color-info)';
-
-    try {
-        const data = await fetchFullServiceDetails({ _start_date: selectedDate, _end_date: selectedDate });
-        const serviceData = data && data.length > 0 ? data[0] : null;
-
-        if (serviceData) {
-            state.currentEditingId = serviceData.id;
-            formElements.directorInput.value = serviceData.director || '';
-            formElements.songsList.innerHTML = '';
-            (serviceData.canciones || []).forEach(songString => {
-                const match = songString.match(/(.*) \((.*)\)/); 
-                if (match && match[1] && match[2]) { addSong({ name: match[1].trim(), artist: match[2].trim() }); } 
-                else { addSong({ name: songString }); }
-            });
-            formElements.musiciansList.innerHTML = '';
-            if (serviceData.banda && serviceData.banda.length > 0) {
-                formElements.musiciansSection.classList.remove('hidden');
-                formElements.toggleMusiciansBtn.textContent = '➖ Ocultar Sección';
-                serviceData.banda.forEach(musico => addMusicianCard(musico.instrumento_id, musico.persona_id));
-            } else {
-                formElements.musiciansSection.classList.add('hidden');
-                formElements.toggleMusiciansBtn.textContent = '✨ Añadir Músicos y Coristas';
-            }
-        } else {
-            resetForm();
-        }
-        formElements.formMessage.style.display = 'none';
-    } catch (error) {
-        console.error("Error al verificar servicio:", error);
-        showMessage(formElements.formMessage, "Error al cargar datos del servicio.", 'error');
-        resetForm();
-    }
-}
-
-function resetForm() {
-    state.currentEditingId = null;
-    formElements.directorInput.value = '';
-    formElements.songsList.innerHTML = '';
-    addSong();
-    formElements.musiciansList.innerHTML = '';
-    formElements.musiciansSection.classList.add('hidden'); 
-    formElements.toggleMusiciansBtn.textContent = '✨ Añadir Músicos y Coristas';
-    formElements.formMessage.style.display = 'none';
-}
-
-function cancelForm() {
-    formElements.dateInput.value = '';
-    formElements.dynamicFields.classList.add('hidden');
-    resetForm();
+let modalListenersAssigned = false;
+function initializeModalListeners() {
+    if (modalListenersAssigned) return;
+    domElements.modalCloseBtn?.addEventListener('click', () => closeModal('success-modal'));
+    domElements.modalActionNewBtn?.addEventListener('click', () => { closeModal('success-modal'); initializePage(); });
+    domElements.modalActionHistorialBtn?.addEventListener('click', () => { closeModal('success-modal'); showPage('page-historial'); });
+    domElements.modalActionReporteBtn?.addEventListener('click', () => { closeModal('success-modal'); showPage('page-reporte'); });
+    modalListenersAssigned = true;
 }
 
 export function initializePage() {
-    if (!state.user) {
-        showPage('login-page');
-        return;
+    if (!state.user) { showPage('login-page'); return; }
+    
+    if (state.dateToEdit) {
+        domElements.dateInput.value = state.dateToEdit;
+        domElements.dateInput.dispatchEvent(new Event('change'));
+        state.dateToEdit = null;
+    } else {
+        domElements.dateInput.value = '';
+        resetAndHideWizard();
     }
-    formElements.dateInput.value = '';
-    formElements.dynamicFields.classList.add('hidden'); 
-    resetForm();
 }
 
 export function initializePageListeners() {
-    // **CORRECCIÓN:** Se elimina la guarda if(!state.user) para que los listeners SIEMPRE se asignen.
-    formElements.addSongBtn.addEventListener('click', () => addSong());
+    domElements.dateInput.addEventListener('change', handleDateChange);
     
-    if (!formActionListenersAssigned) {
-        formElements.cancelBtn.addEventListener('click', cancelForm);
-        formElements.saveBtn.addEventListener('click', handleSave);
-        formActionListenersAssigned = true; 
-    }
-    
-    formElements.dateInput.addEventListener('change', handleDateChange);
-    formElements.dateInput.addEventListener('input', handleDateChange);
+    domElements.nextBtn.addEventListener('click', handleNextStep);
+    domElements.prevBtn.addEventListener('click', handlePrevStep);
+    domElements.saveBtn.addEventListener('click', handleSave);
 
-    formElements.songsList.addEventListener('click', (event) => {
+    domElements.addSongBtn.addEventListener('click', () => addSong());
+    domElements.songsList.addEventListener('click', (event) => {
         const removeBtn = event.target.closest('.remove-song-btn');
         if (removeBtn) {
-            if (formElements.songsList.children.length > 1) {
-                removeBtn.closest('.song-item').remove();
-            } else {
-                removeBtn.closest('.song-item').querySelector('.song-input').value = '';
-                removeBtn.closest('.song-item').querySelector('.artist-input').value = '';
-            }
+            removeBtn.closest('.song-item').remove();
         }
     });
 
-    formElements.toggleMusiciansBtn.addEventListener('click', () => {
-        const isHidden = formElements.musiciansSection.classList.toggle('hidden');
-        formElements.toggleMusiciansBtn.textContent = isHidden ? '✨ Añadir Músicos y Coristas' : '➖ Ocultar Sección';
-        if (!isHidden && formElements.musiciansList.children.length === 0) {
-            addMusicianCard();
+    domElements.addMusicianBtn.addEventListener('click', () => addMusicianCard());
+    domElements.musiciansList.addEventListener('click', (event) => {
+        const removeBtn = event.target.closest('.remove-musician-btn');
+        if (removeBtn) {
+            removeBtn.closest('.musician-card').remove();
         }
     });
 
-    formElements.addMusicianBtn.addEventListener('click', () => addMusicianCard());
-    
-    setupAutocomplete(formElements.directorInput, async (searchTerm) => {
-        const lowerCaseSearchTerm = searchTerm.toLowerCase();
-        return state.allPeople.map(p => p.nombre_persona).filter(name => name.toLowerCase().includes(lowerCaseSearchTerm));
-    });
-
-    if (!modalListenersAssigned) {
-        if (formElements.modalCloseBtn) formElements.modalCloseBtn.addEventListener('click', () => closeModal('success-modal'));
-        if (formElements.modalActionNewBtn) formElements.modalActionNewBtn.addEventListener('click', () => { closeModal('success-modal'); cancelForm(); });
-        if (formElements.modalActionHistorialBtn) formElements.modalActionHistorialBtn.addEventListener('click', () => { closeModal('success-modal'); showPage('page-historial'); });
-        if (formElements.modalActionReporteBtn) formElements.modalActionReporteBtn.addEventListener('click', () => { closeModal('success-modal'); showPage('page-reporte'); });
-        modalListenersAssigned = true;
-    }
+    setupAutocomplete(domElements.directorInput, async (searchTerm) => 
+        state.allPeople
+            .map(p => p.nombre_persona)
+            .filter(name => name.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+    initializeModalListeners();
 }

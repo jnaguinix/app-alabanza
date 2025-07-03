@@ -4,7 +4,8 @@
 // gráficos y visualización de detalles.
 // ==========================================================================
 import { state } from './main.js'; 
-import { fetchReportDetails, searchSongs, searchArtists } from './api.js';
+// CAMBIO: Reemplazar searchSongs con searchSongsWithArtist
+import { fetchReportDetails, searchSongsWithArtist, searchArtists } from './api.js'; 
 import { normalizeString, formatDate, getDayOfWeek, renderChart, setupAutocomplete, setupFilterToggle, showPage } from './ui.js'; 
 
 const reporteElements = {
@@ -181,7 +182,6 @@ export function initializePage() {
 }
 
 export function initializePageListeners() {
-    // **CORRECCIÓN:** Se elimina la guarda if(!state.user) para que los listeners SIEMPRE se asignen.
     reporteElements.applyBtn.addEventListener('click', fetchAndRenderReports);
     reporteElements.clearBtn.addEventListener('click', () => {
         reporteElements.filterDateStart.value = '';
@@ -209,7 +209,13 @@ export function initializePageListeners() {
         return state.allPeople.map(p => p.nombre_persona).filter(name => name.toLowerCase().includes(lowerCaseSearchTerm));
     });
     
-    setupAutocomplete(reporteElements.filterSong, searchSongs);
+    // CAMBIO: Actualizar el autocompletado de canciones en reportes
+    setupAutocomplete(reporteElements.filterSong, searchSongsWithArtist, (selectedSong) => {
+        // Al seleccionar, rellenar el campo de canción y también el de artista para un filtrado preciso
+        reporteElements.filterSong.value = selectedSong.song_name;
+        reporteElements.filterArtist.value = selectedSong.artist_name;
+    });
+    
     setupAutocomplete(reporteElements.filterArtist, searchArtists);
 
     let resizeTimeout;

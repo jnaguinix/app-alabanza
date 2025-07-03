@@ -1,7 +1,6 @@
 // ==========================================================================
 // MÓDULO API: api.js
 // RESPONSABILIDAD: Centralizar TODA la comunicación con la base de datos de Supabase.
-// Este es el único archivo que debería ejecutar llamadas a `supabaseClient.rpc` o `from`.
 // ==========================================================================
 
 import { supabaseClient } from './main.js';
@@ -67,13 +66,6 @@ export async function deleteService(serviceId) {
 
 
 // ========= FUNCIONES DE CATÁLOGOS (LEER) =========
-// Estas funciones ahora solo traen la lista COMPLETA de elementos,
-// ya que la paginación y búsqueda no se utilizan en el frontend tras eliminar la página de Admin.
-
-/**
- * Obtiene la lista completa de todas las personas de la base de datos.
- * @returns {Promise<Array>} Una promesa que resuelve a un array de personas.
- */
 export async function fetchAllPeople() {
     const { data, error } = await supabaseClient.from('personas').select('id, nombre_persona');
     if (error) {
@@ -83,10 +75,6 @@ export async function fetchAllPeople() {
     return data.sort((a, b) => a.nombre_persona.localeCompare(b.nombre_persona));
 }
 
-/**
- * Obtiene la lista completa de todos los instrumentos (excluyendo 'Director').
- * @returns {Promise<Array>} Una promesa que resuelve a un array de instrumentos.
- */
 export async function fetchAllInstruments() {
     const { data, error } = await supabaseClient.from('instrumentos').select('id, nombre_instrumento').neq('nombre_instrumento', 'Director');
     if (error) {
@@ -96,10 +84,6 @@ export async function fetchAllInstruments() {
     return data.sort((a, b) => a.nombre_instrumento.localeCompare(b.nombre_instrumento));
 }
 
-/**
- * Obtiene la lista completa de todos los artistas de la base de datos.
- * @returns {Promise<Array>} Una promesa que resuelve a un array de artistas.
- */
 export async function fetchAllArtists() {
     const { data, error } = await supabaseClient.from('artistas').select('id, nombre_artista');
     if (error) {
@@ -112,28 +96,14 @@ export async function fetchAllArtists() {
 
 // ========= FUNCIONES DE BÚSQUEDA (AUTOCOMPLETADO) =========
 
-/**
- * Busca canciones que coincidan con un término de búsqueda para el autocompletado.
- * @param {string} searchTerm - El texto a buscar.
- * @returns {Promise<Array<string>>} Una promesa que resuelve a un array de nombres de canciones.
- */
-export async function searchSongs(searchTerm) {
-    if (!searchTerm) return [];
-    const { data, error } = await supabaseClient.rpc('search_songs', { search_term: searchTerm });
-    if (error) {
-        console.error("Error buscando canciones:", error);
-        return [];
-    }
-    return data.map(s => s.nombre_cancion);
-}
-
+// CAMBIO: NUEVA función que llama a la nueva RPC
 /**
  * Busca canciones que coincidan con un término de búsqueda, devolviendo también el artista.
  * @param {string} searchTerm - El texto a buscar.
- * @returns {Promise<Array<object>>} Una promesa que resuelve a un array de objetos con {id, display_name}.
+ * @returns {Promise<Array<object>>} Una promesa que resuelve a un array de objetos con {id, display_name, song_name, artist_name}.
  */
 export async function searchSongsWithArtist(searchTerm) {
-    if (!searchTerm) return [];
+    if (!searchTerm || searchTerm.length < 2) return [];
     const { data, error } = await supabaseClient.rpc('search_songs_with_artist', { search_term: searchTerm });
     if (error) {
         console.error("Error buscando canciones con artista:", error);
@@ -148,7 +118,7 @@ export async function searchSongsWithArtist(searchTerm) {
  * @returns {Promise<Array<string>>} Una promesa que resuelve a un array de nombres de artista.
  */
 export async function searchArtists(searchTerm) {
-    if (!searchTerm) return [];
+    if (!searchTerm || searchTerm.length < 2) return [];
     const { data, error } = await supabaseClient
         .from('artistas')
         .select('nombre_artista')

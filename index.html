@@ -28,7 +28,6 @@
         </div>
     </div>
 
-    <!-- La clase 'hidden' se controlará por JS -->
     <div class="main-app-container hidden"> 
         <header class="app-header">
             <h1>App de Alabanza</h1>
@@ -38,8 +37,7 @@
             <button id="nav-reporte">📈 Reportes</button>
             <button id="nav-historial">📜 Historial</button>
             <button id="nav-formulario">✍️ Registro</button>
-            <!-- CAMBIO AQUÍ: Envuelve el emoji en un span con clase 'icon' -->
-            <button id="logout-btn" class="hidden"><span class="icon">🚪</span> Cerrar Sesión</button> 
+            <button id="logout-btn" class="hidden"><span class="icon">🚪</span><span class="btn-text"> Cerrar Sesión</span></button> 
         </nav>
 
         <main id="page-reporte" class="page-content hidden">
@@ -86,42 +84,60 @@
         <main id="page-formulario" class="page-content hidden">
             <h2 class="page-title">📖 Registro de Servicios</h2>
             <p class="page-subtitle">Añade o edita un servicio seleccionando una fecha.</p>
-            <div id="form-message"></div>
-            
+
             <div class="form-group" style="margin-top: var(--space-lg);">
                 <label for="fecha">📅 Fecha del Servicio</label>
                 <input type="date" id="fecha">
             </div>
 
-            <div id="dynamic-fields" class="hidden"> 
-                <div class="main-info-grid">
-                    <div class="form-group">
-                        <label for="director-input">🎤 Nombre del Director</label>
-                        <input type="text" id="director-input" placeholder="Ej: Juan Pérez">
-                    </div>
-                </div>
-
-                <div class="songs-section" style="margin-top: var(--space-lg);">
-                    <h3 style="margin-bottom: var(--space-md);">🎵 Canciones del Servicio</h3>
-                    <div id="songsList">
-                    </div>
-                    <button class="btn btn-add" id="add-song-btn"><span class="icon">+</span>Añadir Canción</button>
-                </div>
-
-                <div class="musicians-toggle-section" style="margin-top: var(--space-lg);">
-                    <button class="btn" id="toggle-musicians-btn" type="button">✨ Añadir Músicos y Coristas</button>
-                </div>
-
-                <div id="musicians-section" class="hidden" style="margin-top: var(--space-lg);">
-                     <h3 style="margin-bottom: var(--space-md);">🎹 Músicos y Coristas</h3>
-                     <div id="musiciansList">
-                     </div>
-                     <button class="btn btn-add" id="add-musician-btn" type="button"><span class="icon">+</span>Añadir Músico/Corista</button>
+            <div id="form-wizard" class="hidden"> 
+                
+                <!-- CAMBIO: Indicador de progreso ahora con 3 pasos -->
+                <div class="form-step-indicator-container">
+                    <ul id="step-indicator" class="form-step-indicator">
+                        <li data-step="1" class="active"><span>1</span> Info y Canciones</li>
+                        <li data-step="2"><span>2</span> Músicos</li>
+                        <li data-step="3"><span>3</span> Resumen</li>
+                    </ul>
                 </div>
                 
-                <div class="actions">
-                    <button class="btn btn-cancel" id="cancel-btn">❌<span class="btn-text"> Cancelar</span></button>
-                    <button class="btn btn-save" id="save-btn">💾<span class="btn-text"> Guardar Servicio</span></button>
+                <div id="form-message"></div>
+
+                <div id="form-steps-container">
+                    
+                    <!-- CAMBIO: Pasos fusionados. Ahora este es el PASO 1 -->
+                    <div id="form-step-1" class="form-step">
+                        <h3 class="step-title">Información y Canciones</h3>
+                        <!-- Campo del director movido aquí -->
+                        <div class="form-group" style="margin-bottom: var(--space-lg);">
+                            <label for="director-input">🎤 Nombre del Director</label>
+                            <input type="text" id="director-input" placeholder="Ej: Juan Pérez">
+                        </div>
+                        
+                        <h4 class="section-subtitle">🎵 Canciones del Servicio</h4>
+                        <div id="songsList"></div>
+                        <button class="btn btn-add" id="add-song-btn" type="button"><span class="icon">+</span>Añadir Canción</button>
+                    </div>
+
+                    <!-- CAMBIO: Este es ahora el PASO 2 -->
+                    <div id="form-step-2" class="form-step hidden">
+                        <h3 class="step-title">🎹 Músicos y Coristas</h3>
+                        <div id="musiciansList"></div>
+                        <button class="btn btn-add" id="add-musician-btn" type="button"><span class="icon">+</span>Añadir Músico/Corista</button>
+                    </div>
+
+                    <!-- CAMBIO: Este es ahora el PASO 3 -->
+                    <div id="form-step-3" class="form-step hidden">
+                        <h3 class="step-title">✅ Resumen del Servicio</h3>
+                        <div id="summary-section"></div>
+                    </div>
+
+                </div>
+
+                <div class="form-navigation actions">
+                    <button class="btn btn-secondary hidden" id="prev-btn">⬅️<span class="btn-text"> Anterior</span></button>
+                    <button class="btn btn-primary" id="next-btn">➡️<span class="btn-text"> Siguiente</span></button>
+                    <button class="btn btn-save hidden" id="save-btn">💾<span class="btn-text"> Guardar Servicio</span></button>
                 </div>
             </div>
         </main>
