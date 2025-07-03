@@ -9,7 +9,6 @@ import { showPage } from './ui.js';
 import { initializePageListeners as initializeReportListeners } from './page-reports.js';
 import { initializePageListeners as initializeHistoryListeners } from './page-history.js';
 import { initializePageListeners as initializeFormListeners } from './page-form.js';
-// Importamos la función para cargar datos iniciales desde 'api.js'
 import { fetchAllPeople, fetchAllInstruments, fetchAllArtists } from './api.js';
 
 // --- Estado Global de la Aplicación ---
@@ -25,9 +24,42 @@ export const state = {
     user: null // Almacena la información del usuario actual
 };
 
-// --- Cliente Supabase ---
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config.js';
-export const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// --- Cliente Supabase (Lógica de Entorno) ---
+let supabaseClient;
+
+async function initializeSupabase() {
+    let SUPABASE_URL, SUPABASE_ANON_KEY;
+
+    // Esta lógica comprueba si estamos en un entorno de producción (como Netlify)
+    // donde las variables se inyectan en `window`.
+    if (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.URL) {
+        // Estamos en producción, usamos las variables inyectadas
+        console.log("Entorno de producción detectado. Usando variables inyectadas.");
+        SUPABASE_URL = window.SUPABASE_CONFIG.URL;
+        SUPABASE_ANON_KEY = window.SUPABASE_CONFIG.ANON_KEY;
+    } else {
+        // No estamos en producción, así que estamos en desarrollo local.
+        // Importamos dinámicamente el archivo config.js (que está ignorado por Git).
+        console.log("Entorno de desarrollo detectado. Importando config.js local.");
+        try {
+            const config = await import('../config.js');
+            SUPABASE_URL = config.SUPABASE_URL;
+            SUPABASE_ANON_KEY = config.SUPABASE_ANON_KEY;
+        } catch (error) {
+            console.error("Error: no se pudo cargar config.js. Asegúrate de que el archivo exista en la raíz del proyecto si estás en desarrollo local.", error);
+            // Mostrar un error en la UI para que el desarrollador lo vea
+            document.body.innerHTML = '<div style="padding: 2rem; text-align: center; font-family: sans-serif; color: red;"><h1>Error de Configuración</h1><p>No se pudo cargar <code>config.js</code>. Este archivo es necesario para el desarrollo local y debe contener tus claves de Supabase.</p></div>';
+            return null;
+        }
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+        console.error("Error: Las claves de Supabase no están definidas.");
+        return null;
+    }
+
+    return supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
 
 // --- Referencias a Elementos del DOM ---
 export const dom = {
@@ -82,10 +114,8 @@ async function manageUIForAuthState(user) {
         dom.mainAppContainer.classList.remove('hidden'); 
         dom.logoutBtn.classList.remove('hidden');  
         
-        // **NUEVO:** Cargar los datos iniciales DESPUÉS de confirmar que hay un usuario
         await loadInitialData();
         
-        // **NUEVO:** Mostrar la página inicial DESPUÉS de cargar los datos
         showPage('page-reporte');
 
     } else {
@@ -108,10 +138,11 @@ async function manageUIForAuthState(user) {
 
 // --- Suscripción a Cambios de Estado de Supabase Auth ---
 function setupAuthStateListener() {
+    if (!supabaseClient) return;
+
     supabaseClient.auth.onAuthStateChange((event, session) => {
         console.log("AuthStateChange event:", event, "Session:", session);
         
-        // Solo reaccionamos a los eventos de login y logout para evitar recargas innecesarias
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
             manageUIForAuthState(session?.user || null);
         } else if (event === 'SIGNED_OUT') {
@@ -135,17 +166,35 @@ function initializeEventListeners() {
         });
     }
 
-    // Los listeners de página se inicializan aquí, pero se aseguran de que el estado esté listo
     initializeReportListeners();
     initializeHistoryListeners();
     initializeFormListeners();
 }
 
 // --- Punto de Entrada de la Aplicación ---
-function main() {
+async function main() {
     console.log("Aplicación iniciada. DOM listo.");
+    
+    // Inicializamos Supabase y esperamos a que esté listo
+    supabaseClient = await initializeSupabase();
+    
+    // Si la inicialización falló (ej. faltan claves), no continuamos.
+    if (!supabaseClient) {
+        console.error("La inicialización de Supabase falló. La aplicación no puede continuar.");
+        return;
+    }
+    
+    // Exportamos el cliente para que otros módulos puedan usarlo.
+    // Esto es un pequeño truco para asegurar que la exportación ocurra después de la inicialización.
+    window.supabaseClient = supabaseClient;
+
     initializeEventListeners();
     setupAuthStateListener(); 
 }
+
+// Para que otros módulos puedan importar el cliente de Supabase
+// Hacemos una exportación tardía. No es lo ideal, pero funciona en este contexto simple.
+// Una mejor aproximación sería usar un patrón de singleton o un inicializador de módulo.
+export { supabaseClient };
 
 document.addEventListener('DOMContentLoaded', main);
