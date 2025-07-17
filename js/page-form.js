@@ -4,8 +4,8 @@
 
 import { state } from './main.js';
 // CAMBIO: Importar la nueva función y eliminar la antigua
-import { saveFullService, fetchFullServiceDetails, searchSongsWithArtist, searchArtists } from './api.js'; 
-import { showMessage, setupAutocomplete, showPage, closeModal } from './ui.js';
+import { saveFullService, fetchFullServiceDetails, searchSongsWithArtist, searchArtists, deleteService } from './api.js'; 
+import { showMessage, setupAutocomplete, showPage, closeModal, showConfirmModal, showInfoModal } from './ui.js';
 
 // ... (El resto del código hasta la función addSong no cambia) ...
 
@@ -24,6 +24,7 @@ const domElements = {
     prevBtn: document.getElementById('prev-btn'),
     nextBtn: document.getElementById('next-btn'),
     saveBtn: document.getElementById('save-btn'),
+    deleteServiceFormBtn: document.getElementById('delete-service-form-btn'), // <-- NUEVA LÍNEA
     successModal: document.getElementById('success-modal'),
     modalCloseBtn: document.querySelector('#success-modal .modal-close-btn'),
     modalActionNewBtn: document.getElementById('modal-action-new'),
@@ -280,15 +281,20 @@ function initializeModalListeners() {
 }
 
 export function initializePage() {
-    if (!state.user) { showPage('login-page'); return; }
-    
+    if (!state.user) {
+        showPage('login-page');
+        return;
+    }
+
     if (state.dateToEdit) {
         domElements.dateInput.value = state.dateToEdit;
         domElements.dateInput.dispatchEvent(new Event('change'));
+        domElements.deleteServiceFormBtn.classList.remove('hidden'); // <-- Mostrar botón de eliminar
         state.dateToEdit = null;
     } else {
         domElements.dateInput.value = '';
         resetAndHideWizard();
+        domElements.deleteServiceFormBtn.classList.add('hidden'); // <-- Ocultar botón de eliminar
     }
 }
 
@@ -298,6 +304,43 @@ export function initializePageListeners() {
     domElements.nextBtn.addEventListener('click', handleNextStep);
     domElements.prevBtn.addEventListener('click', handlePrevStep);
     domElements.saveBtn.addEventListener('click', handleSave);
+
+    // NUEVO: Manejador para el botón de eliminar servicio desde el formulario
+    domElements.deleteServiceFormBtn.addEventListener('click', async () => {
+        const serviceDate = domElements.dateInput.value;
+        if (!serviceDate) {
+            showMessage(domElements.formMessage, 'No hay servicio seleccionado para eliminar.', 'error');
+            return;
+        }
+
+        // Obtener el ID del servicio para eliminarlo
+        try {
+            const [existingService] = await fetchFullServiceDetails({ _start_date: serviceDate, _end_date: serviceDate, _limit: 1 });
+            if (!existingService || !existingService.id) {
+                showMessage(domElements.formMessage, 'No se encontró el servicio para eliminar.', 'error');
+                return;
+            }
+            const serviceIdToDelete = existingService.id;
+
+            showConfirmModal('¿Eliminar Servicio?', '¿Estás seguro de que deseas eliminar este servicio? Esta acción no se puede deshacer.',
+                async () => {
+                    try {
+                        await deleteService(serviceIdToDelete);
+                        showInfoModal('¡Éxito!', 'Servicio eliminado correctamente.', 'success', () => {
+                            resetAndHideWizard(); // Limpiar el formulario
+                            showPage('page-historial'); // Redirigir al historial
+                        });
+                    } catch (error) {
+                        showInfoModal('Error', 'Error al eliminar el servicio. Por favor, intenta de nuevo.', 'error');
+                        console.error("Error al eliminar servicio desde formulario:", error);
+                    }
+                }
+            );
+        } catch (error) {
+            showMessage(domElements.formMessage, 'Error al obtener detalles del servicio para eliminar.', 'error');
+            console.error("Error al obtener ID de servicio para eliminar:", error);
+        }
+    });
 
     domElements.addSongBtn.addEventListener('click', () => addSong());
     domElements.songsList.addEventListener('click', (event) => {

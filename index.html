@@ -59,6 +59,12 @@
             <div class="stats-grid">
                 <div class="chart-card"><h2 id="songs-chart-title">Top Canciones</h2><div class="chart-container"><canvas id="songsChart"></canvas></div></div>
                 <div class="chart-card"><h2>Top Directores</h2><div class="chart-container"><canvas id="directorsChart"></canvas></div></div>
+                <div class="chart-card">
+                    <h2>Top Artistas</h2>
+                    <div class="chart-container">
+                        <canvas id="artistsChart"></canvas>
+                    </div>
+                </div>
             </div>
             <div class="details-section hidden" id="song-details-section"><h2 id="song-details-title"></h2><ul class="details-list" id="song-details-list"></ul><button class="load-more-btn hidden" id="load-more-song-details-btn">Cargar más detalles</button></div>
             <div class="details-section hidden" id="director-details-section"><h2 id="director-details-title"></h2><ul class="details-list" id="director-details-list"></ul><button class="load-more-btn hidden" id="load-more-director-details-btn">Cargar más detalles</button></div>
@@ -138,6 +144,7 @@
                     <button class="btn btn-secondary hidden" id="prev-btn">⬅️<span class="btn-text"> Anterior</span></button>
                     <button class="btn btn-primary" id="next-btn">➡️<span class="btn-text"> Siguiente</span></button>
                     <button class="btn btn-save hidden" id="save-btn">💾<span class="btn-text"> Guardar Servicio</span></button>
+                    <button class="btn btn-danger hidden" id="delete-service-form-btn">🗑️<span class="btn-text"> Eliminar Servicio</span></button>
                 </div>
             </div>
         </main>
@@ -186,6 +193,7 @@
         </div>
     </div>
     
+    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.1/dist/html-to-image.min.js"></script>
     <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -25,6 +25,7 @@ const reporteElements = {
     statCard2Label: document.getElementById('stat-card-2-label'),
     songsChartCanvas: document.getElementById('songsChart'),
     directorsChartCanvas: document.getElementById('directorsChart'),
+    artistsChartCanvas: document.getElementById('artistsChart'),
     songDetailsSection: document.getElementById('song-details-section'),
     songDetailsTitle: document.getElementById('song-details-title'),
     songDetailsList: document.getElementById('song-details-list'),
@@ -41,7 +42,7 @@ const directorColorsMap = {
     'Miguel': '#C0392B', 'Manuel': '#34495E', 'Jhonny': '#8E44AD', 'Kathe-Camilo': '#5D7B9F', 'Alejo': '#F1C40F', 'default': '#7F8C8D'
 };
 
-let songsChartInstance, directorsChartInstance;
+let songsChartInstance, directorsChartInstance, artistsChartInstance;
 let currentSongDetailsPage = 0, currentDirectorDetailsPage = 0;
 const detailsPerPage = 6;
 let currentFilteredSongDetails = [], currentFilteredDirectorSongs = [];
@@ -92,6 +93,13 @@ function renderChartsAndStats(services) {
     
     const directorCounts = services.reduce((acc, s) => { if (s.director) acc[s.director] = (acc[s.director] || 0) + 1; return acc; }, {});
     const topDirectors = Object.entries(directorCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    // NUEVO: Calcular top artistas
+    const artistCounts = services.flatMap(s => s.artistas).reduce((acc, artist) => {
+        acc[artist] = (acc[artist] || 0) + 1;
+        return acc;
+    }, {});
+    const topArtists = Object.entries(artistCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
     
     const primaryColorFromCss = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim();
     const directorColors = topDirectors.map(d => directorColorsMap[d[0]] || directorColorsMap['default']);
@@ -101,9 +109,39 @@ function renderChartsAndStats(services) {
 
     songsChartInstance = renderChart(songsChartInstance, reporteElements.songsChartCanvas, { type: 'bar', data: { labels: topSongs.map(s => s[0]), datasets: [{ label: 'Veces Cantada', data: topSongs.map(s => s[1]), backgroundColor: primaryColorFromCss, borderRadius: 4 }] }, options: { onClick: songClickHandler, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { ticks: { minRotation: 45, maxRotation: 45, autoSkip: true, font: { size: 10 } } } } } });
     directorsChartInstance = renderChart(directorsChartInstance, reporteElements.directorsChartCanvas, { type: 'doughnut', data: { labels: topDirectors.map(d => d[0]), datasets: [{ label: 'Servicios', data: topDirectors.map(d => d[1]), backgroundColor: directorColors, borderWidth: 3 }] }, options: { onClick: directorClickHandler, responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', onClick: handleLegendClick, labels: { padding: 15 } } } } });
+
+    // NUEVO: Renderizar gráfico de artistas
+    const artistClickHandler = createChartClickHandler(reporteElements.filterArtist, reporteElements.filterSong); // Usar filterArtist y filterSong
+    artistsChartInstance = renderChart(artistsChartInstance, reporteElements.artistsChartCanvas, {
+        type: 'bar',
+        data: {
+            labels: topArtists.map(a => a[0]),
+            datasets: [{
+                label: 'Veces Interpretada',
+                data: topArtists.map(a => a[1]),
+                backgroundColor: primaryColorFromCss,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            onClick: artistClickHandler,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } },
+                x: { ticks: { minRotation: 45, maxRotation: 45, autoSkip: true, font: { size: 10 } } }
+            }
+        }
+    });
     
-    if (songFilter && !directorFilter) { renderSongDetails(reporteElements.filterSong.value.trim(), services); } 
-    else if (directorFilter && !songFilter) { renderDirectorDetails(reporteElements.filterDirector.value.trim(), services); }
+    if (songFilter) {
+    renderSongDetails(reporteElements.filterSong.value.trim(), services);
+} else if (directorFilter) {
+    renderDirectorDetails(reporteElements.filterDirector.value.trim(), services);
+}
 }
 
 function clearDetailsReporte() {
@@ -161,7 +199,7 @@ function createChartClickHandler(filterInput, otherFilterInput) {
         const chartInstance = this;
         const itemName = chartInstance.data.labels[elements[0].index];
         filterInput.value = filterInput.value === itemName ? '' : itemName;
-        if (filterInput.value) otherFilterInput.value = '';
+        // if (filterInput.value) otherFilterInput.value = ''; // LÍNEA ELIMINADA
         setTimeout(() => fetchAndRenderReports(), 0);
     }
 }
@@ -169,7 +207,7 @@ function createChartClickHandler(filterInput, otherFilterInput) {
 function handleLegendClick(event, legendItem) {
     const itemName = legendItem.text;
     reporteElements.filterDirector.value = (reporteElements.filterDirector.value === itemName) ? '' : itemName;
-    if (reporteElements.filterDirector.value) reporteElements.filterSong.value = '';
+    // if (reporteElements.filterDirector.value) reporteElements.filterSong.value = ''; // LÍNEA ELIMINADA
     setTimeout(() => fetchAndRenderReports(), 0);
 }
 
@@ -225,6 +263,7 @@ export function initializePageListeners() {
             if (reporteElements.pageElement && !reporteElements.pageElement.classList.contains('hidden')) {
                 if (songsChartInstance) songsChartInstance.resize();
                 if (directorsChartInstance) directorsChartInstance.resize();
+                if (artistsChartInstance) artistsChartInstance.resize();
             }
         }, 250);
     });

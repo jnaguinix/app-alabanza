@@ -22,6 +22,74 @@ const historialElements = {
 const scrollTrigger = document.getElementById('historial-scroll-trigger');
 const instrumentIconMap = { 'default': '🎶', 'Director': '🎤', 'Bateria': '🥁', 'Bajo': '🎸', 'Piano': '🎹', 'Guitarra Acustica': '🎸', 'Guitarra Electrica': '🎸', 'Corista': '🗣️' };
 
+async function shareServiceCard(cardElement) {
+    let bandToggleBtn = null;
+    let bandDetails = null;
+    let originalBandState = { expanded: false, text: '' };
+    let needsDelay = false; // Variable para controlar si necesitamos un retraso
+
+    try {
+        // Expandir la sección de músicos temporalmente si existe y está colapsada
+        bandToggleBtn = cardElement.querySelector('.band-toggle-btn');
+        bandDetails = cardElement.querySelector('.band-details');
+
+        if (bandToggleBtn && bandDetails && !bandToggleBtn.classList.contains('expanded')) {
+            originalBandState.expanded = false;
+            originalBandState.text = bandToggleBtn.innerHTML;
+            bandToggleBtn.classList.add('expanded');
+            bandDetails.classList.add('expanded');
+            const bandSize = bandDetails.querySelector('.band-list').children.length;
+            bandToggleBtn.innerHTML = `<span class="chevron">▼</span> Ocultar Músicos (${bandSize})`;
+            needsDelay = true; // Marcamos que necesitamos un retraso
+        } else if (bandToggleBtn && bandDetails && bandToggleBtn.classList.contains('expanded')) {
+            originalBandState.expanded = true; // Ya estaba expandido, no necesitamos revertir
+        }
+
+        let dataUrl;
+        if (needsDelay) {
+            // Si expandimos la sección, esperamos un poco para que se renderice
+            dataUrl = await new Promise(resolve => {
+                setTimeout(async () => {
+                    const url = await htmlToImage.toPng(cardElement);
+                    resolve(url);
+                }, 500); // Pequeño retraso de 500ms
+            });
+        } else {
+            // Si no hubo cambios o ya estaba expandido, capturamos directamente
+            dataUrl = await htmlToImage.toPng(cardElement);
+        }
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], 'servicio.png', { type: 'image/png' });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: 'Servicio de Alabanza',
+                text: '¡Mira este servicio de alabanza!',
+            });
+            showInfoModal('¡Compartido!', 'El servicio ha sido compartido con éxito.', 'success');
+        } else {
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = 'servicio.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showInfoModal('Descarga Exitosa', 'La imagen del servicio ha sido descargada. Puedes compartirla manualmente.', 'info');
+        }
+    } catch (error) {
+        console.error('Error al compartir el servicio:', error);
+        showInfoModal('Error', 'No se pudo compartir el servicio. Inténtalo de nuevo.', 'error');
+    } finally {
+        // Revertir la expansión si se expandió temporalmente
+        if (bandToggleBtn && bandDetails && !originalBandState.expanded) {
+            bandToggleBtn.classList.remove('expanded');
+            bandDetails.classList.remove('expanded');
+            bandToggleBtn.innerHTML = originalBandState.text;
+        }
+    }
+}
+
 function renderServicesHistorial(servicesToDisplay, append = false) {
     const resultsSection = historialElements.resultsSection;
     if (!append) resultsSection.innerHTML = '';
@@ -46,7 +114,7 @@ function renderServicesHistorial(servicesToDisplay, append = false) {
                 <h3>📅 ${formatDate(service.fecha)} (${getDayOfWeek(service.fecha)})</h3>
                 <div class="service-card-actions">
                     <button class="btn-icon edit-service-btn" data-fecha="${service.fecha}" title="Editar Servicio">✏️</button>
-                    <button class="btn-icon delete-service-btn" data-service-id="${service.id}" title="Eliminar Servicio">🗑️</button>
+                    <button class="btn-icon share-service-btn" data-service-id="${service.id}" title="Compartir Servicio">📲</button>
                 </div>
             </div>
             <div class="service-details"><p><strong>🎤 Director:</strong> ${service.director || 'N/A'}</p></div>
@@ -154,22 +222,13 @@ export function initializePageListeners() {
             return;
         }
 
-        const deleteBtn = e.target.closest('.delete-service-btn');
-        if (deleteBtn) {
-            const serviceId = deleteBtn.dataset.serviceId;
-            showConfirmModal('¿Eliminar Servicio?', '¿Estás seguro de que deseas eliminar este servicio? Esta acción no se puede deshacer.',
-                async () => {
-                    try {
-                        await deleteService(serviceId);
-                        showInfoModal('¡Éxito!', 'Servicio eliminado correctamente.', 'success', () => {
-                           fetchHistorialServices(true);
-                        });
-                    } catch (error) {
-                        showInfoModal('Error', 'Error al eliminar el servicio. Por favor, intenta de nuevo.', 'error');
-                        console.error("Error al eliminar servicio:", error);
-                    }
-                }
-            );
+        const shareBtn = e.target.closest('.share-service-btn');
+        if (shareBtn) {
+            const serviceCard = shareBtn.closest('.service-card');
+            if (serviceCard) {
+                shareServiceCard(serviceCard);
+            }
+            return;
         }
     });
 
@@ -181,7 +240,7 @@ export function initializePageListeners() {
     // CORRECCIÓN: Actualizar el autocompletado de canciones en historial
     setupAutocomplete(historialElements.filterSong, searchSongsWithArtist, (selectedSong) => {
         historialElements.filterSong.value = selectedSong.song_name;
-        historialElements.filterArtist.value = selectedSong.artist_name;
+        historialElements.filterArtist.value = selectedS.artist_name;
     });
 
     setupAutocomplete(historialElements.filterArtist, searchArtists);
