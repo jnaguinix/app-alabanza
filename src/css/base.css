@@ -1,0 +1,81 @@
+/* ==========================================================================
+   CONFIGURACIÓN GLOBAL Y VARIABLES
+   ========================================================================== */
+
+/* Propiedades CSS personalizadas para Temas y Consistencia */
+:root {
+    /* Paleta de Colores Principal - ¡MODIFICADO A AZUL OSCURO Y MODERNO! */
+    --color-primary: #2C3E50; /* Un azul medianoche/navy profundo */
+    --color-primary-dark: #1A2B3C; /* Más oscuro para hovers y bordes */
+    --color-primary-light: #294e4b; /* Un tono más claro para acentos y toggles */
+
+    --color-success: #4CAF50;
+    --color-success-dark: #45A049;
+    --color-danger: #EF5350;
+    --color-danger-dark: #E53935;
+    --color-info: #2196F3;
+    --color-info-dark: #1976D2;
+    --color-secondary: #6c757d;
+    --color-secondary-dark: #5a6268;
+    
+    /* Colores de UI y Texto - Ampliación de grises y fondo */
+    --color-text-primary: #212529; /* Un negro más suave */
+    --color-text-secondary: #495057; /* Gris oscuro para descripciones */
+    --color-text-light: #f8f9fa; /* Para texto sobre fondos oscuros */
+
+    --color-background: #f8f9fa; /* Fondo general más claro */
+    --color-surface: #ffffff; /* Superficie de tarjetas y contenedores */
+    --color-light-gray-bg: #f0f2f5; /* Un gris muy ligero para fondos de secciones */
+    --color-border: #e9ecef; /* Bordes más suaves */
+    --color-input-border-focus: #adb5bd; /* Borde de input en foco (inicial) */
+    
+    /* Tipografía */
+    --font-family: 'Inter', sans-serif;
+    --font-size-base: 16px;
+    --font-size-sm: 14px;
+    --font-size-lg: 20px;
+    
+    /* Espaciado */
+    --space-xxs: 4px;
+    --space-xs: 8px;
+    --space-sm: 12px;
+    --space-md: 20px;
+    --space-lg: 28px;
+    --space-xl: 40px;
+    
+    /* Bordes y Sombras */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px; /* Un poco más de curvatura para containers principales */
+
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.12);
+    --shadow-md: 0 3px 6px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.15);
+    --shadow-lg: 0 10px 20px rgba(0,0,0,0.15), 0 6px 6px rgba(0,0,0,0.1);
+    
+    /* Transiciones */
+    --transition-speed: 0.3s ease-in-out;
+}
+
+/* ==========================================================================
+   RESETEO BÁSICO Y ESTILOS DEL BODY
+   ========================================================================== */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family), "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; /* AÑADIDO: fuentes de emoji */
+    background: var(--color-background);
+    min-height: 100vh;
+    padding: var(--space-md); /* Se mantiene padding para desktop */
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Centra el contenedor principal */
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+    line-height: 1.6;
+}

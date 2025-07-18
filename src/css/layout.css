@@ -1,0 +1,150 @@
+/* ==========================================================================
+   ESTRUCTURA PRINCIPAL DE LA APLICACIÓN
+   ========================================================================== */
+
+.main-app-container {
+    width: 100%;
+    max-width: 1100px; /* Un poco más ancho para reportes y tablas */
+    margin: 0 auto;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg); /* Sombra más prominente */
+    overflow: hidden; /* Asegura que el contenido no desborde las esquinas redondeadas */
+    display: flex;
+    flex-direction: column; /* Organiza header, nav, main verticalmente */
+}
+
+.app-header {
+    background: var(--color-primary);
+    color: var(--color-text-light); /* Texto blanco sobre primario */
+    padding: var(--space-lg) var(--space-xl); /* Más padding */
+    text-align: center;
+    border-bottom: 4px solid var(--color-primary-dark);
+}
+
+.app-header h1 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-xs); /* Menos margen */
+    font-weight: 700;
+}
+.app-header p {
+    font-size: var(--font-size-sm);
+    opacity: 0.9;
+}
+
+/* Barra de Navegación */
+.main-nav {
+    display: flex;
+    justify-content: center;
+    background-color: var(--color-light-gray-bg); /* Fondo más suave */
+    padding: var(--space-sm) var(--space-xs); /* Padding ajustado */
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+    gap: var(--space-xs); /* Espacio entre botones */
+}
+
+.main-nav button {
+    background: none;
+    border: none; /* Quitamos el borde para un look más moderno */
+    color: var(--color-text-secondary); /* Color de texto suave */
+    padding: 10px 20px; /* Ajusta padding para que quepan íconos de navegación */
+    border-radius: var(--radius-sm); /* Bordes más sutiles */
+    cursor: pointer;
+    font-weight: 500; /* Peso de fuente intermedio */
+    font-size: var(--font-size-base);
+    transition: all var(--transition-speed); /* Transición suave */
+    white-space: nowrap;
+    position: relative; /* Para el efecto de borde inferior */
+    text-transform: uppercase; /* Para un look más moderno */
+    letter-spacing: 0.5px;
+    flex: 1; /* Permite que todos los botones nav compartan el espacio igualmente */
+    min-width: 80px; /* Un tamaño mínimo para que no se compriman demasiado */
+}
+
+.main-nav button::after { /* Efecto de subrayado al pasar el ratón */
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    height: 3px;
+    width: 0;
+    background-color: var(--color-primary);
+    transition: width var(--transition-speed);
+    border-radius: 2px;
+}
+
+.main-nav button:hover {
+    color: var(--color-primary);
+    background-color: rgba(44, 62, 80, 0.05); 
+}
+
+.main-nav button:hover::after {
+    width: calc(100% - var(--space-sm)); /* Subrayado en hover */
+}
+
+.main-nav button.active {
+    color: var(--color-primary);
+    background-color: var(--color-surface); /* Blanco para la activa */
+    font-weight: 600;
+    box-shadow: var(--shadow-sm); /* Sombra ligera para la activa */
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    flex: 1.2; /* Ligeramente más grande cuando está activo */
+}
+
+.main-nav button.active::after {
+    width: calc(100% - var(--space-sm)); /* Subrayado permanente para la activa */
+    background-color: var(--color-primary);
+}
+
+/* REFINADO: Estilos del botón de cerrar sesión para ESCRITORIO */
+#logout-btn {
+    border: 1px solid var(--color-danger); /* Borde para definir su forma en PC */
+    color: var(--color-danger); /* Texto rojo */
+    background: none; /* Sin fondo sólido por defecto */
+    padding: 10px 20px; /* Igual que otros botones de navegación */
+    flex: 0 0 auto; /* No crece ni encoge, se ajusta al contenido */
+    font-size: var(--font-size-base); /* Tamaño base para el texto */
+    gap: var(--space-xs); /* Espacio entre icono y texto */
+}
+#logout-btn:hover {
+    background-color: var(--color-danger); /* Fondo rojo sólido al pasar el ratón */
+    color: var(--color-text-light); /* Texto blanco al pasar el ratón */
+    border-color: var(--color-danger); /* Borde rojo sólido al pasar el ratón */
+}
+#logout-btn::after { /* Quitar el subrayado para logout */
+    display: none;
+}
+#logout-btn:hover::after {
+    display: none;
+}
+#logout-btn .icon { /* Asegurar tamaño del icono en escritorio */
+    font-size: var(--font-size-base); 
+}
+#logout-btn .btn-text { /* Asegurar que el texto esté visible en escritorio */
+    display: inline;
+}
+
+
+/* Contenido de las Páginas */
+.page-content {
+    padding: var(--space-xl); /* Más padding para el contenido de la página */
+    background: var(--color-surface); /* Fondo blanco */
+    flex-grow: 1; /* Para que ocupe el espacio disponible */
+}
+
+.page-title {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-border); /* Borde más suave */
+    font-weight: 700;
+}
+
+.page-subtitle {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-lg);
+}

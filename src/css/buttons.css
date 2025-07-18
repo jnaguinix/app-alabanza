@@ -1,0 +1,84 @@
+/* ==========================================================================
+   BOTONES
+   ========================================================================== */
+
+.btn {
+    padding: 12px 20px; /* Padding ajustado para altura consistente */
+    border: none;
+    border-radius: var(--radius-sm); /* Menos curvatura */
+    cursor: pointer;
+    font-weight: 600;
+    transition: all var(--transition-speed); /* Transición unificada */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs); /* Espacio entre ícono y texto */
+    font-size: var(--font-size-sm);
+    min-height: 48px; /* Mayor altura táctil */
+    text-transform: uppercase; /* Texto en mayúsculas */
+    letter-spacing: 0.5px;
+    box-shadow: var(--shadow-sm); /* Sombra ligera por defecto */
+}
+.btn:active { 
+    transform: translateY(1px); /* Efecto de "presionar" */
+    box-shadow: none; /* Eliminar sombra al presionar */
+}
+
+.btn:hover {
+    box-shadow: var(--shadow-md); /* Sombra más prominente en hover */
+}
+
+.btn-danger { background: var(--color-danger); color: var(--color-text-light); }
+.btn-danger:hover { background: var(--color-danger-dark); }
+
+.btn-add, .btn-apply-filters { background: var(--color-primary); color: var(--color-text-light); }
+.btn-add:hover, .btn-apply-filters:hover { background: var(--color-primary-dark); }
+
+.btn-save { background: var(--color-success); color: var(--color-text-light); }
+.btn-save:hover { background: var(--color-success-dark); }
+
+.btn-cancel, .btn-clear { background: var(--color-secondary); color: var(--color-text-light); }
+.btn-cancel:hover, .btn-clear:hover { background: var(--color-secondary-dark); }
+
+/* Estilo del botón de toggle de filtros (por defecto: filtros ocultos) */
+#toggle-musicians-btn, .btn-filter-toggle {
+    width: 100%;
+    background-color: var(--color-primary); /* Color oscuro principal */
+    color: var(--color-text-light);
+    box-shadow: var(--shadow-sm);
+}
+/* @media (min-width: 768px) { #toggle-musicians-btn { width: auto; } } - Esto se mueve a responsive.css */
+/* Hover para el botón de toggle de filtros (cuando está cerrado) */
+#toggle-musicians-btn:hover, .btn-filter-toggle:hover {
+    background-color: var(--color-primary-dark); /* Color más oscuro en hover */
+}
+
+/* Estilo para el botón de toggle de filtros cuando está ACTIVO (filtros visibles) */
+.btn-filter-toggle.active-filter-toggle {
+    background-color: var(--color-primary-light); /* Color claro cuando está abierto */
+    color: var(--color-text-light); /* Asegura que el texto siga siendo claro */
+}
+
+/* Hover para el botón de toggle de filtros cuando está ACTIVO (filtros visibles) */
+.btn-filter-toggle.active-filter-toggle:hover {
+    background-color: var(--color-primary); /* Vuelve al color principal en hover cuando está abierto */
+}
+
+
+.actions {
+    display: flex;
+    gap: var(--space-md);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border); /* Borde más suave */
+    margin-top: var(--space-lg); /* Espacio superior */
+}
+.actions .btn {
+    flex: 1;
+    min-width: unset; /* Reiniciar min-width */
+    padding: var(--space-sm) var(--space-md); /* Padding adaptativo */
+    font-size: var(--font-size-sm);
+}
+.actions .btn .btn-text {
+    display: inline;
+}
+/* @media (min-width: 768px) { .actions .btn { flex-grow: 0; min-width: 150px; } .actions .btn .btn-text { display: inline; } } - Esto se mueve a responsive.css */

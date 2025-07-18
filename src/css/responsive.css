@@ -1,0 +1,200 @@
+/* ==========================================================================
+   OPTIMIZACIONES PARA MÓVILES (Media Queries)
+   ========================================================================== */
+
+/* Media query para pantallas con un ancho mínimo de 640px (ej. tablets y desktop) */
+@media (min-width: 640px) {
+    /* Desde forms.css original (filtros en grid) */
+    .filters-section {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    /* Desde components.css original (campos de canción/artista en dos columnas) */
+    .song-details-inputs {
+        grid-template-columns: 2fr 1fr;
+    }
+    /* Desde reports.css original (lista de detalles de reportes en grid) */
+    .details-list {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+}
+
+/* Media query para pantallas con un ancho mínimo de 768px (ej. desktop grande) */
+@media (min-width: 768px) {
+    /* Desde buttons.css original (ancho del botón de músicos/filtros) */
+    #toggle-musicians-btn {
+        width: auto;
+    }
+    /* Desde buttons.css original (acciones de formulario en escritorio) */
+    .actions .btn {
+        flex-grow: 0; /* No crece tanto */
+        min-width: 150px; /* Ancho mínimo para desktop */
+    }
+    .actions .btn .btn-text {
+        display: inline; /* Mantener el texto en desktop */
+    }
+    /* Desde reports.css original (grilla de estadísticas en dos columnas) */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Media query para pantallas con un ancho máximo de 767px (ej. móviles) */
+@media (max-width: 767px) {
+    body { 
+        padding: 0;
+        align-items: flex-start;
+    }
+    .main-app-container { 
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .page-content { padding: var(--space-md) var(--space-sm); }
+    .app-header h1 { font-size: 22px; }
+    .app-header p { font-size: 14px; }
+    .filter-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-actions .btn {
+        width: 100%;
+    }
+    .chart-container { 
+        height: 250px; 
+    }
+
+    .main-nav {
+        padding: var(--space-xs);
+        justify-content: space-between;
+        flex-wrap: nowrap;
+        gap: var(--space-xxs);
+    }
+
+    .main-nav button {
+        background: none;
+        border: none;
+        padding: 8px 6px;
+        font-size: var(--font-size-sm);
+        min-height: 40px;
+        flex: 1;
+        text-align: center;
+    }
+
+    .main-nav button .btn-text {
+        display: none !important; 
+    }
+    .main-nav button .icon {
+        margin: 0; 
+        font-size: var(--font-size-base);
+    }
+
+    .main-nav button.active {
+        background-color: var(--color-primary);
+        color: var(--color-text-light);
+        box-shadow: var(--shadow-sm);
+        border-radius: var(--radius-sm);
+    }
+    .main-nav button.active::after {
+        display: none !important;
+    }
+    
+    .main-app-container.active-reporte .app-header,
+    .main-app-container.active-historial .app-header,
+    .main-app-container.active-formulario .app-header {
+        display: none;
+    }
+
+    .main-app-container.active-reporte .main-nav,
+    .main-app-container.active-historial .main-nav,
+    .main-app-container.active-formulario .main-nav {
+        margin-top: 0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: var(--color-light-gray-bg);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    #logout-btn {
+        background: none;
+        color: var(--color-danger);
+        border: none; 
+        width: 40px;
+        height: 40px;
+        min-height: 40px; 
+        padding: 0; 
+        border-radius: var(--radius-sm);
+        flex-shrink: 0; 
+        box-shadow: none;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 20px; 
+        flex: 0 0 40px;
+    }
+    #logout-btn .icon {
+        font-size: 20px; 
+    }
+    #logout-btn:hover { 
+        background-color: var(--color-danger);
+        color: var(--color-text-light);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .page-title {
+        font-size: var(--font-size-base); 
+        margin-bottom: var(--space-xs); 
+        padding-bottom: var(--space-xs); 
+    }
+    .page-subtitle {
+        font-size: var(--font-size-sm); 
+        margin-bottom: var(--space-md); 
+    }
+    .form-step .step-title { 
+        font-size: var(--font-size-base); 
+        margin-bottom: var(--space-sm) !important; 
+        padding-bottom: var(--space-xxs); 
+    }
+    
+    .filters-section {
+        padding: var(--space-md) var(--space-sm); 
+    }
+    .form-group {
+        gap: var(--space-xxs); 
+    }
+
+    /* === REGLAS DE COMPACTACIÓN DE MÚSICO CARD EN MÓVIL === */
+    .musician-card {
+        grid-template-columns: 1fr; /* Apilar selects */
+        padding: var(--space-sm);
+        padding-right: 48px; /* Espacio para el botón de eliminar flotante */
+        gap: var(--space-sm);
+    }
+
+    .musician-card .remove-musician-btn {
+        position: absolute;
+        top: 50%;
+        right: var(--space-sm);
+        transform: translateY(-50%);
+        background-color: var(--color-danger);
+        color: var(--color-text-light);
+    }
+
+    #add-musician-btn {
+        font-size: var(--font-size-sm); 
+        min-height: 40px; 
+        padding: var(--space-xs) var(--space-sm); 
+        margin-top: var(--space-sm); 
+    }
+}
+
+/* Media query para pantallas con un ancho máximo de 479px (ej. móviles muy pequeños) */
+@media (max-width: 479px) { /* Por debajo de 480px, apilar las acciones del modal */
+    /* Desde modals.css original (acciones del modal se apilan) */
+    .modal-actions {
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+    .modal-actions button.modal-action-btn {
+        width: 100%; /* Botones a ancho completo */
+    }
+}

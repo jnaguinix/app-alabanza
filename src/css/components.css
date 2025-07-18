@@ -1,0 +1,148 @@
+/* ==========================================================================
+   COMPONENTES GENERALES
+   ========================================================================== */
+
+/* NUEVO: Wrapper para campos de autocompletado */
+.input-autocomplete-wrapper {
+    position: relative;
+    flex-grow: 1;
+    min-width: 0;
+}
+
+/* Filas de Canciones (ahora con 2 inputs) */
+.song-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+    align-items: center;
+}
+
+/* Contenedor para los campos de canción y artista (grilla interna) */
+.song-details-inputs {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+}
+
+/* Autocompletado genérico */
+.autocomplete-suggestions { 
+    position: absolute; 
+    top: 100%;
+    left: 0; 
+    right: 0; 
+    background-color: var(--color-surface); 
+    border: 1px solid var(--color-border); 
+    border-top: none; 
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    max-height: 200px;
+    overflow-y: auto; 
+    z-index: 1000;
+}
+.autocomplete-item { 
+    padding: var(--space-sm) var(--space-md);
+    cursor: pointer; 
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+}
+.autocomplete-item:hover, .autocomplete-item.active { 
+    background-color: var(--color-light-gray-bg);
+    color: var(--color-primary);
+}
+
+/* === DISEÑO COMPACTO PARA MUSICIAN CARD === */
+.musician-card {
+    background: var(--color-light-gray-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: var(--space-sm);
+    align-items: center;
+}
+
+.musician-card .remove-musician-btn {
+    background: var(--color-secondary);
+    color: var(--color-text-light);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all var(--transition-speed);
+    box-shadow: var(--shadow-sm);
+    font-size: 20px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.musician-card .remove-musician-btn:hover {
+    background: var(--color-danger);
+    transform: scale(1.1);
+}
+
+#musiciansList {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+}
+
+.band-toggle-btn {
+    background: none;
+    border: none;
+    padding: var(--space-sm) 0;
+    margin-top: var(--space-md);
+    font-weight: 600;
+    color: var(--color-primary);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+    transition: color var(--transition-speed);
+}
+.band-toggle-btn:hover {
+    color: var(--color-primary-dark);
+}
+.band-toggle-btn .chevron {
+    transition: transform var(--transition-speed);
+    font-size: var(--font-size-base);
+}
+.band-toggle-btn.expanded .chevron {
+    transform: rotate(90deg);
+}
+.band-details {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out, margin-top 0.5s ease-in-out;
+}
+.band-details.expanded {
+    max-height: 500px;
+    margin-top: var(--space-sm);
+}
+.band-list {
+    list-style: none;
+    padding: var(--space-sm) 0 var(--space-sm) var(--space-md);
+    border-left: 3px solid var(--color-primary-light);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+}
+.band-list li {
+    padding: var(--space-xxs) 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xxs);
+}

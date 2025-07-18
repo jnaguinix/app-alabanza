@@ -1,0 +1,83 @@
+/* ==========================================================================
+   FORMULARIOS, FILTROS Y ENTRADAS
+   ========================================================================== */
+
+.filters-section {
+    background: var(--color-light-gray-bg); /* Fondo más claro */
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-xl);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+    align-items: end;
+    box-shadow: var(--shadow-sm); /* Sombra ligera */
+}
+
+.form-group {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs); /* Menos espacio entre label e input */
+}
+
+label {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-xxs); /* Poco margen */
+}
+
+input, select, textarea {
+    padding: 10px 14px; /* Restaura padding aquí para evitar problemas visuales si se definió globalmente un valor más pequeño */
+    border: 1px solid var(--color-border); /* Borde más fino */
+    border-radius: var(--radius-sm); /* Menos curvatura */
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    transition: all 0.2s ease; /* Restaura la velocidad de transición para inputs */
+    width: 100%;
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+}
+
+input[readonly] {
+    background-color: var(--color-light-gray-bg); /* Color de fondo para readonly */
+    cursor: not-allowed;
+    border-color: var(--color-border);
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--color-primary); /* Borde primario en foco */
+    box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.15); 
+}
+
+/* Placeholders */
+input::placeholder, textarea::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.7; /* Más suave */
+}
+
+/* Estilo para select placeholders */
+select:invalid,
+select option[value=""] {
+  color: #9ca3af; /* Un color gris más suave, similar a un placeholder */
+}
+
+.filter-actions {
+    display: flex;
+    gap: var(--space-sm);
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    padding-top: var(--space-sm); /* Más espacio arriba */
+}
+
+#form-message {
+    margin-bottom: var(--space-md); 
+    padding: var(--space-sm) var(--space-md); /* Ajuste de padding */
+    border-radius: var(--radius-sm); /* Ajuste de radio */
+    display: none;
+    text-align: center;
+    font-weight: 500;
+    line-height: 1.4;
+}

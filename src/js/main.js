@@ -2,8 +2,23 @@
 // MÓDULO PRINCIPAL: main.js (Versión Robusta y Final v2)
 // ==========================================================================
 
-// Importa los módulos de lógica
-import { handleLogin, handleLogout } from './auth.js'; 
+// Importaciones de CSS (manejadas por Vite)
+import '../../src/css/base.css';
+import '../../src/css/layout.css';
+import '../../src/css/forms.css';
+import '../../src/css/buttons.css';
+import '../../src/css/components.css';
+import '../../src/css/modals.css';
+import '../../src/css/login.css';
+import '../../src/css/pages/history.css';
+import '../../src/css/pages/reports.css';
+import '../../src/css/pages/form-wizard.css';
+import '../../src/css/utilities.css';
+import '../../src/css/responsive.css';
+
+// Importaciones de JS
+import { createClient } from '@supabase/supabase-js';
+import { handleLogin, handleLogout } from './auth.js';
 import { showPage } from './ui.js';
 import { initializePageListeners as initializeReportListeners } from './page-reports.js';
 import { initializePageListeners as initializeHistoryListeners } from './page-history.js';
@@ -41,18 +56,9 @@ export const dom = {
 };
 
 // --- Cliente Supabase (Inicialización Robusta) ---
-let supabaseClientInstance = null;
-try {
-    const supabaseUrl = window.SUPABASE_CONFIG?.URL || "https://xkxzloudrpcunqwutldk.supabase.co"; 
-    const supabaseKey = window.SUPABASE_CONFIG?.ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhreHpsb3VkcnBjdW5xd3V0bGRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMDA2MTksImV4cCI6MjA2NjY3NjYxOX0.D7zw2RpXYYALBupty9CVHYTvC5MAYq__r6h0RIW9fBY";
-    
-    supabaseClientInstance = supabase.createClient(supabaseUrl, supabaseKey);
-    console.log("Cliente de Supabase inicializado correctamente.");
-} catch(e) {
-    console.error("Error al inicializar Supabase:", e);
-    document.body.innerHTML = '<h1>Error de Configuración de Supabase</h1>';
-}
-export const supabaseClient = supabaseClientInstance;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
 
 // --- Lógica Principal de la Aplicación ---

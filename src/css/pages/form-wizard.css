@@ -1,0 +1,172 @@
+/* ==========================================================================
+   ESTILOS DEL ASISTENTE DEL FORMULARIO (WIZARD)
+   ========================================================================== */
+
+#form-wizard {
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+}
+
+.form-step-indicator-container {
+    margin-bottom: var(--space-xl);
+}
+
+.form-step-indicator {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    counter-reset: step;
+}
+
+/* CAMBIO: Ajustar el ancho de los ítems del indicador para 3 pasos */
+.form-step-indicator li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 33.33%; /* Ajustado para 3 pasos */
+    position: relative;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.form-step-indicator li span {
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    display: block;
+    text-align: center;
+    border-radius: 50%;
+    background-color: var(--color-light-gray-bg);
+    border: 2px solid var(--color-border);
+    margin-bottom: var(--space-xs);
+    font-weight: 700;
+    transition: all var(--transition-speed);
+}
+
+/* Conectores entre pasos */
+.form-step-indicator li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background-color: var(--color-border);
+    top: 20px;
+    left: 50%;
+    z-index: -1;
+    transition: all var(--transition-speed);
+}
+
+/* Estado Activo */
+.form-step-indicator li.active span {
+    background-color: var(--color-primary);
+    color: var(--color-text-light);
+    border-color: var(--color-primary-dark);
+    transform: scale(1.1);
+}
+.form-step-indicator li.active {
+    color: var(--color-text-primary);
+    font-weight: 700;
+}
+
+/* Estado Completado */
+.form-step-indicator li.completed span {
+    background-color: var(--color-success);
+    color: var(--color-text-light);
+    border-color: var(--color-success-dark);
+}
+
+.form-step-indicator li.completed::after {
+    background-color: var(--color-success);
+}
+
+/* Título y Contenedor de Pasos */
+.step-title {
+    margin-bottom: var(--space-lg);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    text-align: center;
+    color: var(--color-primary);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-sm);
+}
+
+/* CAMBIO: Estilo para el nuevo subtítulo de sección */
+.section-subtitle {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-top: var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-sm);
+}
+
+#form-steps-container {
+    min-height: 300px; /* Evita que el contenedor salte al cambiar de paso */
+    padding-bottom: var(--space-lg);
+}
+
+.form-step {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.form-navigation {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-lg);
+    margin-top: var(--space-lg);
+    display: flex;
+    justify-content: space-between;
+}
+.form-navigation .btn-primary { 
+    background-color: var(--color-primary); 
+    color: var(--color-text-light);
+}
+.form-navigation .btn-primary:hover { background-color: var(--color-primary-dark); }
+.form-navigation .btn-secondary { 
+    background-color: var(--color-secondary); 
+    color: var(--color-text-light);
+}
+.form-navigation .btn-secondary:hover { background-color: var(--color-secondary-dark); }
+
+
+/* Estilos para la sección de resumen */
+#summary-section {
+    padding: var(--space-md);
+    background: var(--color-light-gray-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+#summary-section h4 {
+    font-size: var(--font-size-base);
+    color: var(--color-primary);
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-xs);
+}
+#summary-section p, #summary-section ul {
+    margin-bottom: var(--space-md);
+}
+#summary-section ul {
+    list-style: none;
+    padding-left: 0;
+}
+#summary-section li {
+    padding: var(--space-xs);
+    background: var(--color-surface);
+    border-radius: var(--radius-xs);
+    margin-bottom: var(--space-xxs);
+}

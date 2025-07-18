@@ -1,0 +1,97 @@
+/* ==========================================================================
+   MODAL (Ventana Emergente)
+   ========================================================================== */
+.modal-overlay {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000; opacity: 0;
+    transition: opacity var(--transition-speed);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+}
+.modal-overlay:not(.hidden) { opacity: 1; pointer-events: auto; }
+.modal-content {
+    background: var(--color-surface);
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    text-align: center; max-width: 500px;
+    width: 90%; position: relative;
+    transform: scale(0.8);
+    transition: transform var(--transition-speed);
+    border: 1px solid var(--color-border);
+}
+.modal-overlay:not(.hidden) .modal-content { transform: scale(1); }
+.modal-close-btn { 
+    position: absolute; top: var(--space-sm); right: var(--space-md);
+    background: none; border: none; 
+    font-size: 32px;
+    font-weight: 300; 
+    color: var(--color-text-secondary);
+    cursor: pointer; 
+    transition: color var(--transition-speed);
+}
+.modal-close-btn:hover { color: var(--color-text-primary); }
+.modal-icon { 
+    font-size: 60px;
+    margin-bottom: var(--space-md); 
+    color: var(--color-success); 
+}
+/* Estilos específicos para iconos de modales */
+#confirm-modal .modal-icon {
+    color: #FFC107; /* Amarillo para advertencia */
+}
+#info-modal .modal-icon.success {
+    color: var(--color-success); /* Verde para éxito en info modal */
+}
+#info-modal .modal-icon.error {
+    color: var(--color-danger); /* Rojo para error en info modal */
+}
+#info-modal .modal-icon.info {
+    color: var(--color-info); /* Azul para info en info modal */
+}
+
+.modal-content h2 { 
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-xs); 
+    color: var(--color-text-primary); 
+    font-weight: 700;
+}
+.modal-content p { 
+    font-size: var(--font-size-base); 
+    margin-bottom: var(--space-lg); 
+    color: var(--color-text-secondary); 
+}
+.modal-actions { 
+    display: flex; 
+    gap: var(--space-sm); 
+    flex-direction: column; 
+    margin-top: var(--space-lg);
+}
+.modal-actions button.modal-action-btn {
+    background-color: var(--color-primary); 
+    color: var(--color-text-light); 
+    border: none; 
+    padding: var(--space-sm) var(--space-md); 
+    border-radius: var(--radius-sm); 
+    font-size: var(--font-size-sm); 
+    cursor: pointer; 
+    transition: background-color var(--transition-speed), box-shadow var(--transition-speed); 
+    box-shadow: var(--shadow-sm);
+    flex: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+.modal-actions button.modal-action-btn:hover { background-color: var(--color-primary-dark); box-shadow: var(--shadow-md); }
+.modal-actions button.modal-action-btn.secondary { background-color: var(--color-secondary); }
+.modal-actions button.modal-action-btn.secondary:hover { background-color: var(--color-secondary-dark); }
+/* Estilo para el botón de peligro en el modal */
+.modal-actions button.modal-action-btn.danger {
+    background-color: var(--color-danger);
+}
+.modal-actions button.modal-action-btn.danger:hover {
+    background-color: var(--color-danger-dark);
+}

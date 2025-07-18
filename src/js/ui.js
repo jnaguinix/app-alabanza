@@ -3,6 +3,9 @@
 // RESPONSABILIDAD: Manejar la visualización de páginas, modales, mensajes y helpers de UI.
 // ==========================================================================
 
+import { Chart, registerables } from 'chart.js';
+Chart.register(...registerables);
+
 import { dom, state } from './main.js';
 import { initializePage as initializeReportPage } from './page-reports.js';
 import { initializePage as initializeHistoryPage } from './page-history.js';

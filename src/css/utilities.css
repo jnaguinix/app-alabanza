@@ -1,0 +1,20 @@
+/* ==========================================================================
+   CLASES DE UTILIDAD
+   ========================================================================== */
+.hidden {
+    display: none !important;
+}
+.no-results {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: var(--space-xl);
+    background: var(--color-light-gray-bg);
+    border-radius: var(--radius-md);
+    font-weight: 500;
+}
+.no-details {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: var(--space-md);
+    list-style-type: none;
+}

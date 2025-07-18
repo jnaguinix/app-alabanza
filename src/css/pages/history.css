@@ -1,0 +1,80 @@
+/* ==========================================================================
+   ESTILOS DE LA PÁGINA: Historial
+   ========================================================================== */
+.service-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+.service-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+}
+.service-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-xs);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border);
+}
+.service-card-header h3 {
+    font-size: var(--font-size-lg);
+    color: var(--color-primary);
+    margin: 0;
+    font-weight: 700;
+}
+.service-card-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 1.1rem; /* CAMBIO AQUÍ: Reducido de 1.4rem a 1.1rem */
+    cursor: pointer;
+    transition: color var(--transition-speed), transform var(--transition-speed);
+}
+.btn-icon:hover {
+    transform: scale(1.15);
+}
+.edit-service-btn {
+    color: var(--color-primary);
+}
+.edit-service-btn:hover {
+    color: var(--color-primary-dark);
+}
+.delete-service-btn {
+    color: var(--color-secondary);
+}
+.delete-service-btn:hover {
+    color: var(--color-danger);
+}
+.service-details p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-sm);
+    line-height: 1.5;
+}
+.songs-list {
+    list-style: none;
+    padding: var(--space-xs) 0 0 0;
+    margin-top: var(--space-sm);
+    border-top: 1px dashed var(--color-border);
+}
+.songs-list li {
+    background: var(--color-light-gray-bg);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-xs);
+    margin-bottom: var(--space-xxs);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xxs);
+}

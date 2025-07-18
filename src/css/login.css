@@ -1,0 +1,48 @@
+/* ==========================================================================
+   PÁGINA DE LOGIN
+   ========================================================================== */
+#login-page {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.login-container {
+    background: var(--color-surface);
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+    border: 1px solid var(--color-border);
+}
+.login-container h2 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-xs);
+    color: var(--color-text-primary);
+    font-weight: 700;
+}
+.login-container p {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--space-lg);
+    color: var(--color-text-secondary);
+}
+.login-container .form-group {
+    text-align: left;
+    margin-bottom: var(--space-md);
+}
+.login-container .btn {
+    width: 100%;
+    margin-top: var(--space-sm);
+}
+#login-error-message {
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    display: none;
+    background-color: var(--color-danger);
+    color: var(--color-text-light);
+    font-weight: 500;
+}
