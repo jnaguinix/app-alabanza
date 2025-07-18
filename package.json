@@ -1,0 +1,30 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.52.0",
+    "chart.js": "^4.5.0",
+    "html-to-image": "^1.11.13"
+  },
+  "name": "app-alabanza",
+  "version": "1.0.0",
+  "main": "config.js",
+  "devDependencies": {
+    "vite": "^7.0.5"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jnaguinix/app-alabanza.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jnaguinix/app-alabanza/issues"
+  },
+  "homepage": "https://github.com/jnaguinix/app-alabanza#readme",
+  "description": ""
+}
