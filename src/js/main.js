@@ -3,18 +3,18 @@
 // ==========================================================================
 
 // Importaciones de CSS (manejadas por Vite)
-import '../../src/css/base.css';
-import '../../src/css/layout.css';
-import '../../src/css/forms.css';
-import '../../src/css/buttons.css';
-import '../../src/css/components.css';
-import '../../src/css/modals.css';
-import '../../src/css/login.css';
-import '../../src/css/pages/history.css';
-import '../../src/css/pages/reports.css';
-import '../../src/css/pages/form-wizard.css';
-import '../../src/css/utilities.css';
-import '../../src/css/responsive.css';
+import '../css/base.css';
+import '../css/layout.css';
+import '../css/forms.css';
+import '../css/buttons.css';
+import '../css/components.css';
+import '../css/modals.css';
+import '../css/login.css';
+import '../css/pages/history.css';
+import '../css/pages/reports.css';
+import '../css/pages/form-wizard.css';
+import '../css/utilities.css';
+import '../css/responsive.css';
 
 // Importaciones de JS
 import { createClient } from '@supabase/supabase-js';
