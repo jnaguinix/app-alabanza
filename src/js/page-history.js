@@ -5,6 +5,7 @@ import { state } from './main.js';
 // CORRECCIÓN DEFINITIVA: Importar searchSongsWithArtist en lugar de searchSongs
 import { fetchFullServiceDetails, deleteService, searchSongsWithArtist, searchArtists } from './api.js'; 
 import { formatDate, getDayOfWeek, setupAutocomplete, setupFilterToggle, showConfirmModal, showInfoModal, showPage } from './ui.js';
+import * as htmlToImage from 'html-to-image';
 
 const historialElements = {
     pageElement: document.getElementById('page-historial'),

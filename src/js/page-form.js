@@ -81,21 +81,71 @@ function handlePrevStep() {
     }
 }
 
+function clearValidationErrors() {
+    domElements.formMessage.innerHTML = '';
+    domElements.formMessage.classList.remove('error', 'info', 'success');
+    document.querySelectorAll('.form-group.invalid').forEach(el => el.classList.remove('invalid'));
+    document.querySelectorAll('.error-message').forEach(el => el.remove());
+}
+
 function validateCurrentStep() {
-    showMessage(domElements.formMessage, ''); 
-    
+    clearValidationErrors(); 
+    let isValid = true;
+
     if (currentStep === 1) {
+        // Validación del director
         if (!domElements.directorInput.value.trim()) {
-            showMessage(domElements.formMessage, 'El nombre del director es obligatorio.', 'error');
-            return false;
+            displayFieldError(domElements.directorInput, 'El nombre del director es obligatorio.');
+            isValid = false;
         }
-        const songs = [...domElements.songsList.querySelectorAll('.song-input')].map(input => input.value.trim());
-        if (songs.length === 0 || songs.every(s => !s)) {
+
+        // Validación de canciones
+        const songItems = domElements.songsList.querySelectorAll('.song-item');
+        if (songItems.length === 0) {
             showMessage(domElements.formMessage, 'Debes añadir al menos una canción.', 'error');
-            return false;
+            isValid = false;
+        } else {
+            songItems.forEach(item => {
+                const songInput = item.querySelector('.song-input');
+                const artistInput = item.querySelector('.artist-input');
+                if (!songInput.value.trim()) {
+                    displayFieldError(songInput, 'El nombre de la canción es obligatorio.');
+                    isValid = false;
+                }
+                // Opcional: validar artista si es necesario
+            });
+        }
+    } else if (currentStep === 2) {
+        // Validación de músicos
+        const musicianCards = domElements.musiciansList.querySelectorAll('.musician-card');
+        if (musicianCards.length === 0) {
+            showMessage(domElements.formMessage, 'Debes añadir al menos un músico/corista.', 'error');
+            isValid = false;
+        } else {
+            musicianCards.forEach(card => {
+                const instrumentSelect = card.querySelector('.instrument-select');
+                const personSelect = card.querySelector('.person-select');
+                if (!instrumentSelect.value) {
+                    displayFieldError(instrumentSelect, 'Selecciona un instrumento.');
+                    isValid = false;
+                }
+                if (!personSelect.value) {
+                    displayFieldError(personSelect, 'Selecciona una persona.');
+                    isValid = false;
+                }
+            });
         }
     }
-    return true;
+    return isValid;
+}
+
+function displayFieldError(inputElement, message) {
+    const formGroup = inputElement.closest('.form-group') || inputElement.parentNode;
+    formGroup.classList.add('invalid');
+    const errorMessage = document.createElement('span');
+    errorMessage.className = 'error-message';
+    errorMessage.textContent = message;
+    formGroup.appendChild(errorMessage);
 }
 
 function saveStepData() {
@@ -243,10 +293,26 @@ function addSong(song = { name: '', artist: '' }) {
         // Al seleccionar, rellena ambos campos
         songInput.value = selectedSong.song_name;
         artistInput.value = selectedSong.artist_name;
+        // Validar después de rellenar
+        if (currentStep === 1) {
+            validateCurrentStep();
+        }
     });
     
     // El autocompletado para el artista sigue funcionando de forma independiente
     setupAutocomplete(artistInput, searchArtists);
+
+    // Validación en tiempo real para campos de canción y artista
+    songInput.addEventListener('input', () => {
+        if (currentStep === 1) {
+            validateCurrentStep();
+        }
+    });
+    artistInput.addEventListener('input', () => {
+        if (currentStep === 1) {
+            validateCurrentStep();
+        }
+    });
 }
 
 function addMusicianCard(instrumentoId = '', personaId = '') {
@@ -268,6 +334,21 @@ function addMusicianCard(instrumentoId = '', personaId = '') {
     `;
     
     domElements.musiciansList.appendChild(card);
+
+    // Validación en tiempo real para los selects de músico
+    const instrumentSelect = card.querySelector('.instrument-select');
+    const personSelect = card.querySelector('.person-select');
+
+    instrumentSelect.addEventListener('change', () => {
+        if (currentStep === 2) {
+            validateCurrentStep();
+        }
+    });
+    personSelect.addEventListener('change', () => {
+        if (currentStep === 2) {
+            validateCurrentStep();
+        }
+    });
 }
 
 let modalListenersAssigned = false;
@@ -304,6 +385,38 @@ export function initializePageListeners() {
     domElements.nextBtn.addEventListener('click', handleNextStep);
     domElements.prevBtn.addEventListener('click', handlePrevStep);
     domElements.saveBtn.addEventListener('click', handleSave);
+
+    // Validación en tiempo real para el director
+    domElements.directorInput.addEventListener('input', () => {
+        if (currentStep === 1) {
+            validateCurrentStep();
+        }
+    });
+
+    // Hacer los indicadores de paso clicables
+    domElements.stepIndicator.querySelectorAll('li').forEach(indicator => {
+        indicator.addEventListener('click', (event) => {
+            const step = parseInt(event.currentTarget.dataset.step);
+            // Solo permitir navegar a pasos anteriores o al paso actual si es válido
+            if (step < currentStep) {
+                saveStepData();
+                currentStep = step;
+                showStep(currentStep);
+                clearValidationErrors();
+            } else if (step > currentStep) {
+                // Si se intenta avanzar, validar el paso actual primero
+                if (validateCurrentStep()) {
+                    saveStepData();
+                    currentStep = step;
+                    showStep(currentStep);
+                    clearValidationErrors();
+                }
+            } else if (step === currentStep) {
+                // Si se hace clic en el paso actual, revalidar
+                validateCurrentStep();
+            }
+        });
+    });
 
     // NUEVO: Manejador para el botón de eliminar servicio desde el formulario
     domElements.deleteServiceFormBtn.addEventListener('click', async () => {

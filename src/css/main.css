@@ -4,30 +4,30 @@
 
 /* Propiedades CSS personalizadas para Temas y Consistencia */
 :root {
-    /* Paleta de Colores Principal - ¡MODIFICADO A AZUL OSCURO Y MODERNO! */
-    --color-primary: #2C3E50; /* Un azul medianoche/navy profundo */
-    --color-primary-dark: #1A2B3C; /* Más oscuro para hovers y bordes */
-    --color-primary-light: #294e4b; /* Un tono más claro para acentos y toggles */
+    /* Paleta de Colores Principal - ¡NUEVA PALETA: TEAL VIBRANTE Y LIMPIO! */
+    --color-primary: #00796B; /* Teal vibrante */
+    --color-primary-dark: #004D40; /* Teal más oscuro para hovers y bordes */
+    --color-primary-light: #4DB6AC; /* Teal más claro para acentos y toggles */
 
-    --color-success: #4CAF50;
-    --color-success-dark: #45A049;
-    --color-danger: #EF5350;
-    --color-danger-dark: #E53935;
-    --color-info: #2196F3;
-    --color-info-dark: #1976D2;
-    --color-secondary: #6c757d;
-    --color-secondary-dark: #5a6268;
+    --color-success: #66BB6A; /* Verde para éxito */
+    --color-success-dark: #388E3C; /* Verde más oscuro */
+    --color-danger: #EF5350; /* Rojo para peligro (similar al anterior) */
+    --color-danger-dark: #D32F2F; /* Rojo más oscuro */
+    --color-info: #29B6F6; /* Azul claro para información */
+    --color-info-dark: #0288D1; /* Azul más oscuro */
+    --color-secondary: #78909C; /* Azul-Gris para elementos secundarios */
+    --color-secondary-dark: #546E7A; /* Azul-Gris más oscuro */
     
-    /* Colores de UI y Texto - Ampliación de grises y fondo */
-    --color-text-primary: #212529; /* Un negro más suave */
-    --color-text-secondary: #495057; /* Gris oscuro para descripciones */
+    /* Colores de UI y Texto - Paleta de grises y fondo más limpios */
+    --color-text-primary: #263238; /* Gris muy oscuro para texto principal */
+    --color-text-secondary: #546E7A; /* Gris medio para descripciones */
     --color-text-light: #f8f9fa; /* Para texto sobre fondos oscuros */
 
-    --color-background: #f8f9fa; /* Fondo general más claro */
-    --color-surface: #ffffff; /* Superficie de tarjetas y contenedores */
-    --color-light-gray-bg: #f0f2f5; /* Un gris muy ligero para fondos de secciones */
-    --color-border: #e9ecef; /* Bordes más suaves */
-    --color-input-border-focus: #adb5bd; /* Borde de input en foco (inicial) */
+    --color-background: #F5F8FA; /* Fondo general muy claro, ligeramente azulado */
+    --color-surface: #FFFFFF; /* Superficie de tarjetas y contenedores (blanco puro) */
+    --color-light-gray-bg: #ECEFF1; /* Un gris muy ligero para fondos de secciones */
+    --color-border: #CFD8DC; /* Bordes suaves y sutiles */
+    --color-input-border-focus: #90A4AE; /* Borde de input en foco */
     
     /* Tipografía */
     --font-family: 'Inter', sans-serif;
@@ -43,15 +43,15 @@
     --space-lg: 28px;
     --space-xl: 40px;
     
-    /* Bordes y Sombras */
+    /* Bordes y Sombras - Más suaves y sutiles */
     --radius-xs: 4px;
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 18px; /* Un poco más de curvatura para containers principales */
+    --radius-sm: 6px; /* Ligeramente menos curvatura */
+    --radius-md: 10px; /* Ligeramente menos curvatura */
+    --radius-lg: 14px; /* Menos curvatura para containers principales */
 
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.12);
-    --shadow-md: 0 3px 6px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.15);
-    --shadow-lg: 0 10px 20px rgba(0,0,0,0.15), 0 6px 6px rgba(0,0,0,0.1);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.08); /* Sombra más suave */
+    --shadow-md: 0 2px 4px rgba(0,0,0,0.08), 0 2px 2px rgba(0,0,0,0.12); /* Sombra más suave */
+    --shadow-lg: 0 8px 16px rgba(0,0,0,0.1), 0 4px 4px rgba(0,0,0,0.08); /* Sombra más suave */
     
     /* Transiciones */
     --transition-speed: 0.3s ease-in-out;
@@ -99,9 +99,9 @@ body {
 .app-header {
     background: var(--color-primary);
     color: var(--color-text-light); /* Texto blanco sobre primario */
-    padding: var(--space-lg) var(--space-xl); /* Más padding */
+    padding: var(--space-xl) var(--space-xl); /* Más padding vertical */
     text-align: center;
-    border-bottom: 4px solid var(--color-primary-dark);
+    border-bottom: 1px solid var(--color-primary-dark); /* Borde más sutil */
 }
 
 .app-header h1 {
@@ -182,8 +182,8 @@ body {
 
 /* REFINADO: Estilos del botón de cerrar sesión para ESCRITORIO */
 #logout-btn {
-    border: 1px solid var(--color-danger); /* Borde para definir su forma en PC */
-    color: var(--color-danger); /* Texto rojo */
+    border: 1px solid var(--color-secondary); /* Borde para definir su forma en PC */
+    color: var(--color-secondary); /* Texto secundario */
     background: none; /* Sin fondo sólido por defecto */
     padding: 10px 20px; /* Igual que otros botones de navegación */
     flex: 0 0 auto; /* No crece ni encoge, se ajusta al contenido */
@@ -191,9 +191,9 @@ body {
     gap: var(--space-xs); /* Espacio entre icono y texto */
 }
 #logout-btn:hover {
-    background-color: var(--color-danger); /* Fondo rojo sólido al pasar el ratón */
+    background-color: var(--color-secondary); /* Fondo secundario sólido al pasar el ratón */
     color: var(--color-text-light); /* Texto blanco al pasar el ratón */
-    border-color: var(--color-danger); /* Borde rojo sólido al pasar el ratón */
+    border-color: var(--color-secondary); /* Borde secundario sólido al pasar el ratón */
 }
 #logout-btn::after { /* Quitar el subrayado para logout */
     display: none;
@@ -301,6 +301,18 @@ select option[value=""] {
   color: #9ca3af; /* Un color gris más suave, similar a un placeholder */
 }
 
+/* Estilos para validación en tiempo real */
+.form-group.invalid input, .form-group.invalid select {
+    border-color: var(--color-danger); /* Borde rojo para campos inválidos */
+}
+
+.error-message {
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+    margin-top: var(--space-xxs);
+    display: block;
+}
+
 .filter-actions {
     display: flex;
     gap: var(--space-sm);
@@ -400,8 +412,8 @@ select option[value=""] {
 .actions .btn {
     flex: 1;
     min-width: unset; /* Reiniciar min-width */
-    padding: var(--space-sm) var(--space-md); /* Padding adaptativo */
-    font-size: var(--font-size-sm);
+    padding: var(--space-md) var(--space-lg); /* Padding adaptativo */
+    font-size: var(--font-size-base); /* Tamaño de fuente base */
 }
 .actions .btn .btn-text {
     display: inline;
@@ -409,7 +421,7 @@ select option[value=""] {
 @media (min-width: 768px) {
     .actions .btn {
         flex-grow: 0; /* No crece tanto */
-        min-width: 150px; /* Ancho mínimo para desktop */
+        min-width: 180px; /* Ancho mínimo para desktop */
     }
     .actions .btn .btn-text {
         display: inline; /* Mantener el texto en desktop */
@@ -1258,6 +1270,7 @@ select option[value=""] {
     background: var(--color-surface);
     border-radius: var(--radius-xs);
     margin-bottom: var(--space-xxs);
+    border: 1px solid var(--color-border); /* Borde sutil */
 }
 /* Ajustes para que las acciones de los modales se apilen en pantallas muy pequeñas */
 @media (max-width: 479px) { /* Por debajo de 480px, apilar las acciones del modal */
