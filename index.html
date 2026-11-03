@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>AlabanzApp</title>
   <meta name="description" content="Registra los servicios de alabanza, consulta el historial y mira qué se canta más." />
-  <meta name="theme-color" content="#0B1226" />
+  <meta name="theme-color" content="#F3F5FA" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script>
     try {
-      var t = localStorage.getItem('alabanzapp:theme') || 'system';
+      var t = localStorage.getItem('alabanzapp:theme') || 'light';
       var dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
       document.documentElement.classList.toggle('dark', dark);
     } catch (e) {}

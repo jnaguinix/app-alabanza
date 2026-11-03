@@ -32,9 +32,9 @@ export function AppProvider({ children }) {
 
   const [theme, setThemeState] = useState(() => {
     try {
-      return localStorage.getItem(THEME_KEY) || 'system';
+      return localStorage.getItem(THEME_KEY) || 'light';
     } catch {
-      return 'system';
+      return 'light';
     }
   });
 

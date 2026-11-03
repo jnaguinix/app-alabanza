@@ -2,66 +2,152 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import * as htmlToImage from 'html-to-image';
 import { Copy, Image as ImageIcon, MessageSquareText } from 'lucide-react';
 import { useApp } from '../app-context';
-import { longDate } from '../lib/format';
+import { formatDirectors, longDate } from '../lib/format';
 import { groupBand } from './Setlist';
 import { Sheet } from './ui';
 
 const ShareContext = createContext(() => {});
 export const useShare = () => useContext(ShareContext);
 
-/** Tarjeta 1080x1350 con colores propios (no depende del tema de la app). */
+/** Tarjeta 1080x1350 en modo blanco / claro de alta calidad gráfica para exportar y compartir. */
 function ShareCard({ service, cardRef }) {
   const band = groupBand(service.band);
+  const directorText = service.directors?.length
+    ? formatDirectors(service.directors)
+    : service.director || 'Por definir';
+  const isMultiple = (service.directors && service.directors.length > 1) || (directorText.includes(' y '));
+
   return (
     <div
       ref={cardRef}
-      style={{ width: 1080, height: 1350, background: '#0B1226', color: '#EEF2FC', fontFamily: 'Figtree, sans-serif' }}
-      className="relative flex flex-col p-[84px]"
+      style={{
+        width: 1080,
+        height: 1350,
+        background: '#FFFFFF',
+        color: '#0F1B3D',
+        fontFamily: 'Figtree, sans-serif',
+      }}
+      className="relative flex flex-col justify-between p-[76px] box-border"
     >
-      <div className="absolute inset-x-0 top-0 grid h-4 grid-cols-4">
+      {/* Barra superior con los colores emblemáticos */}
+      <div className="absolute inset-x-0 top-0 grid h-3.5 grid-cols-4">
         <span style={{ background: '#B80E0A' }} />
         <span style={{ background: '#213E91' }} />
         <span style={{ background: '#FAC20E' }} />
         <span style={{ background: '#8AA4EE' }} />
       </div>
-      <p style={{ color: '#FAC20E', fontFamily: '"Bricolage Grotesque", sans-serif' }} className="text-[34px] font-bold">
-        AlabanzApp
-      </p>
-      <h2
-        style={{ fontFamily: '"Bricolage Grotesque", sans-serif' }}
-        className="mt-6 text-[84px] leading-[1.02] font-extrabold first-letter:uppercase"
-      >
-        {longDate(service.fecha).split(' de ').slice(0, 2).join(' de ')}
-      </h2>
-      <p style={{ color: '#A2AECB' }} className="mt-3 text-[34px]">
-        Dirige {service.director || 'por definir'}
-      </p>
-      <ol className="mt-14 flex-1 space-y-7">
-        {service.songs.map((s, i) => (
-          <li key={i} className="flex items-baseline gap-7">
+
+      {/* Cabecera con Marca y Etiqueta */}
+      <div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3.5">
             <span
-              style={{ color: '#FAC20E', fontFamily: '"Bricolage Grotesque", sans-serif' }}
-              className="w-12 text-right text-[44px] font-bold"
+              style={{
+                background: '#213E91',
+                color: '#FFFFFF',
+                fontFamily: '"Bricolage Grotesque", sans-serif',
+              }}
+              className="flex size-14 items-center justify-center rounded-2xl text-[30px] font-extrabold shadow-sm"
             >
-              {i + 1}
+              A
             </span>
-            <div>
-              <p style={{ fontFamily: '"Bricolage Grotesque", sans-serif' }} className="text-[50px] leading-tight font-bold">
-                {s.name}
-              </p>
-              <p style={{ color: '#A2AECB' }} className="text-[28px]">{s.artist}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
-      {band.length > 0 && (
-        <div style={{ borderColor: '#25335C' }} className="grid grid-cols-2 gap-x-10 gap-y-3 border-t-2 pt-9 text-[26px]">
-          {band.map(([instrument, people]) => (
-            <p key={instrument}>
-              <span style={{ color: '#A2AECB' }}>{instrument}: </span>
-              {people.join(', ')}
-            </p>
+            <span
+              style={{
+                color: '#213E91',
+                fontFamily: '"Bricolage Grotesque", sans-serif',
+              }}
+              className="text-[38px] font-extrabold tracking-tight"
+            >
+              AlabanzApp
+            </span>
+          </div>
+
+          <span
+            style={{
+              background: '#FFF1BD',
+              color: '#0F1B3D',
+              borderColor: '#FAC20E',
+            }}
+            className="rounded-full border px-5 py-2 text-[22px] font-bold"
+          >
+            Servicio de Alabanza
+          </span>
+        </div>
+
+        {/* Fecha y Dirección */}
+        <h2
+          style={{
+            fontFamily: '"Bricolage Grotesque", sans-serif',
+            color: '#0F1B3D',
+          }}
+          className="mt-8 text-[76px] leading-[1.05] font-extrabold tracking-tight first-letter:uppercase"
+        >
+          {longDate(service.fecha).split(' de ').slice(0, 2).join(' de ')}
+        </h2>
+
+        <p className="mt-2.5 text-[32px] text-[#55607F]">
+          <span className="font-medium">
+            {isMultiple ? 'Dirigen: ' : 'Dirige: '}
+          </span>
+          <strong style={{ color: '#213E91' }} className="font-bold">
+            {directorText}
+          </strong>
+        </p>
+      </div>
+
+      {/* Lista de Canciones */}
+      <div className="my-6 flex-1 flex flex-col justify-center">
+        <ol className="space-y-5">
+          {service.songs.map((s, i) => (
+            <li key={i} className="flex items-baseline gap-6">
+              <span
+                style={{
+                  background: '#E9EDF6',
+                  color: '#213E91',
+                  fontFamily: '"Bricolage Grotesque", sans-serif',
+                }}
+                className="flex size-14 shrink-0 items-center justify-center rounded-2xl text-[30px] font-bold"
+              >
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p
+                  style={{
+                    fontFamily: '"Bricolage Grotesque", sans-serif',
+                    color: '#0F1B3D',
+                  }}
+                  className="text-[44px] leading-tight font-bold tracking-tight"
+                >
+                  {s.name}
+                </p>
+                <p style={{ color: '#55607F' }} className="text-[26px] font-medium">
+                  {s.artist}
+                </p>
+              </div>
+            </li>
           ))}
+        </ol>
+      </div>
+
+      {/* Músicos y Coristas (Banda) */}
+      {band.length > 0 && (
+        <div
+          style={{
+            borderColor: '#D9DFEC',
+            background: '#F8FAFC',
+          }}
+          className="rounded-3xl border-2 p-7"
+        >
+          <div className="grid grid-cols-2 gap-x-10 gap-y-3 text-[24px]">
+            {band.map(([instrument, people]) => (
+              <p key={instrument} className="truncate">
+                <span style={{ color: '#55607F' }}>{instrument}: </span>
+                <strong style={{ color: '#0F1B3D' }} className="font-semibold">
+                  {people.join(', ')}
+                </strong>
+              </p>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -70,7 +156,14 @@ function ShareCard({ service, cardRef }) {
 
 /** Texto listo para WhatsApp (los asteriscos son negrita allí). */
 export function serviceText(s) {
-  const lines = [`*Servicio del ${longDate(s.fecha)}*`, `Dirige: ${s.director || 'por definir'}`, '', '*Canciones*'];
+  const directorText = s.directors?.length ? formatDirectors(s.directors) : s.director || 'por definir';
+  const isMultiple = (s.directors && s.directors.length > 1) || (directorText.includes(' y '));
+  const lines = [
+    `*Servicio del ${longDate(s.fecha)}*`,
+    `${isMultiple ? 'Dirigen' : 'Dirige'}: ${directorText}`,
+    '',
+    '*Canciones*',
+  ];
   s.songs.forEach((x, i) => lines.push(`${i + 1}. ${x.name} (${x.artist})`));
   if (s.band.length) {
     lines.push('', '*Músicos*');
