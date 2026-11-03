@@ -1,0 +1,6 @@
+{
+  "summary": "Plan para implementar el Gestor de Usuarios con 3 roles (Admin, Gestor de canciones, Visualizador), control de acceso en Firestore, restricción de importar/exportar solo a administradores y puerta de autenticación obligatoria con Google.",
+  "updatedAt": "2026-11-03T18:43:34.203899388Z",
+  "requestFeedback": true,
+  "userFacing": true
+}

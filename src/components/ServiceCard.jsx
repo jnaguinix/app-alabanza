@@ -25,7 +25,7 @@ export function DateBlock({ fecha, className }) {
 export function ServiceCard({ service }) {
   const [open, setOpen] = useState(false);
   const share = useShare();
-  const { navigate } = useApp();
+  const { navigate, canEdit } = useApp();
   const panelId = `servicio-${service.id}`;
 
   return (
@@ -53,7 +53,9 @@ export function ServiceCard({ service }) {
           />
         </button>
         <div className="hidden gap-1 sm:flex">
-          <IconButton icon={Pencil} label="Editar servicio" onClick={() => navigate('registro', service.fecha)} />
+          {canEdit && (
+            <IconButton icon={Pencil} label="Editar servicio" onClick={() => navigate('registro', service.fecha)} />
+          )}
           <IconButton icon={Share2} label="Compartir como imagen" onClick={() => share(service)} />
         </div>
       </div>
@@ -67,13 +69,15 @@ export function ServiceCard({ service }) {
             </div>
           )}
           <div className="mt-4 flex gap-2 sm:hidden">
-            <button
-              type="button"
-              onClick={() => navigate('registro', service.fecha)}
-              className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-line font-semibold"
-            >
-              <Pencil size={16} aria-hidden /> Editar
-            </button>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => navigate('registro', service.fecha)}
+                className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-line font-semibold"
+              >
+                <Pencil size={16} aria-hidden /> Editar
+              </button>
+            )}
             <button
               type="button"
               onClick={() => share(service)}

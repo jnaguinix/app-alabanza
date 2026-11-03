@@ -1,8 +1,27 @@
-import { useRef, useState } from 'react';
-import { BarChart3, Download, History, Home, Monitor, Moon, PenLine, Settings, Sun, Upload } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  BarChart3,
+  Download,
+  History,
+  Home,
+  LogOut,
+  Monitor,
+  Moon,
+  PenLine,
+  Settings,
+  Shield,
+  ShieldCheck,
+  Sun,
+  Trash2,
+  Upload,
+  User,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 import { useApp } from '../app-context';
 import { exportServices, previewImport } from '../data/store';
 import { parseServices } from '../data/importer';
+import { listUsers, removeUser, ROLES, setUserRole } from '../data/users';
 import { plural, todayISO } from '../lib/format';
 import { Button, ConfirmDialog, IconButton, Sheet, cx } from './ui';
 
@@ -27,10 +46,214 @@ function Logo() {
   );
 }
 
+function RoleBadge({ role }) {
+  const info = ROLES[role] || ROLES.viewer;
+  return (
+    <span className={cx('inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-bold', info.badgeClass)}>
+      {info.label}
+    </span>
+  );
+}
+
+function UserManagementSheet({ open, onClose }) {
+  const { user, toast } = useApp();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newEmail, setNewEmail] = useState('');
+  const [newRole, setNewRole] = useState('editor');
+  const [submitting, setSubmitting] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const list = await listUsers();
+      setUsers(list);
+    } catch {
+      toast('Error al cargar la lista de usuarios.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open) loadData();
+  }, [open]);
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    if (!newEmail.trim() || !newEmail.includes('@')) {
+      return toast('Escribe un correo electrónico válido.', 'error');
+    }
+    setSubmitting(true);
+    try {
+      await setUserRole(newEmail.trim(), newRole, user.email);
+      toast(`Usuario ${newEmail.trim()} asignado como ${ROLES[newRole].label}`);
+      setNewEmail('');
+      await loadData();
+    } catch (err) {
+      toast(err.message || 'No se pudo registrar el usuario.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRoleChange = async (targetEmail, targetRole) => {
+    try {
+      await setUserRole(targetEmail, targetRole, user.email);
+      toast(`Rol de ${targetEmail} cambiado a ${ROLES[targetRole].label}`);
+      await loadData();
+    } catch (err) {
+      toast(err.message || 'No se pudo cambiar el rol.', 'error');
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
+    try {
+      await removeUser(userToDelete);
+      toast(`Acceso revocado a ${userToDelete}`);
+      setUserToDelete(null);
+      await loadData();
+    } catch (err) {
+      toast(err.message || 'No se pudo revocar el acceso.', 'error');
+    }
+  };
+
+  return (
+    <>
+      <Sheet open={open && !userToDelete} onClose={onClose} title="Gestor de Usuarios">
+        <p className="mb-4 text-xs text-muted">
+          Controla quién puede acceder y qué acciones puede realizar en AlabanzApp.
+        </p>
+
+        {/* Formulario nuevo usuario */}
+        <form onSubmit={handleAddUser} className="mb-6 rounded-2xl border border-line bg-sunken/60 p-3.5">
+          <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-muted">Añadir o actualizar miembro</h4>
+          <div className="space-y-2.5">
+            <div>
+              <label htmlFor="user-email-input" className="sr-only">
+                Correo de Google
+              </label>
+              <input
+                id="user-email-input"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="correo@gmail.com"
+                className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/60 focus:border-brand-blue"
+              />
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value)}
+                className="flex-1 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand-blue"
+              >
+                <option value="editor">Gestor de canciones (Crear/Editar)</option>
+                <option value="viewer">Visualizador (Solo lectura)</option>
+                <option value="admin">Admin (Acceso total)</option>
+              </select>
+              <Button type="submit" variant="primary" icon={UserPlus} disabled={submitting} className="shrink-0 text-xs">
+                Asignar
+              </Button>
+            </div>
+          </div>
+        </form>
+
+        {/* Lista de usuarios */}
+        <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
+          Miembros con acceso ({users.length})
+        </h4>
+
+        {loading ? (
+          <div className="py-8 text-center text-sm text-muted">Cargando usuarios…</div>
+        ) : (
+          <div className="space-y-2.5">
+            {users.map((u) => {
+              const isSelf = u.email === user?.email;
+              const isMainAdmin = u.email === 'jnaguinix@gmail.com';
+
+              return (
+                <div
+                  key={u.email}
+                  className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-semibold text-ink">{u.email}</p>
+                      {isSelf && (
+                        <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-ink">Tú</span>
+                      )}
+                    </div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <RoleBadge role={u.role} />
+                      <p className="text-[11px] text-muted">
+                        {u.role === 'admin' && 'Acceso total y backup'}
+                        {u.role === 'editor' && 'Puede crear y editar'}
+                        {u.role === 'viewer' && 'Solo consulta'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1 sm:pt-0">
+                    <select
+                      value={u.role}
+                      disabled={isMainAdmin}
+                      onChange={(e) => handleRoleChange(u.email, e.target.value)}
+                      className="rounded-lg border border-line bg-surface px-2 py-1 text-xs font-medium text-ink disabled:opacity-50"
+                      aria-label={`Cambiar rol de ${u.email}`}
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="editor">Gestor de canciones</option>
+                      <option value="viewer">Visualizador</option>
+                    </select>
+
+                    <IconButton
+                      icon={Trash2}
+                      label={`Revocar acceso a ${u.email}`}
+                      disabled={isMainAdmin || isSelf}
+                      onClick={() => setUserToDelete(u.email)}
+                      className="disabled:opacity-30"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Sheet>
+
+      <ConfirmDialog
+        open={!!userToDelete}
+        title="¿Revocar acceso al usuario?"
+        message={`Se eliminará a ${userToDelete} del sistema y no podrá acceder a los servicios de AlabanzApp.`}
+        confirmLabel="Revocar acceso"
+        tone="danger"
+        onCancel={() => setUserToDelete(null)}
+        onConfirm={confirmDelete}
+      />
+    </>
+  );
+}
+
 function SettingsSheet({ open, onClose }) {
-  const { theme, setTheme, resetSample, clearAll, importServices, toast } = useApp();
+  const {
+    theme,
+    setTheme,
+    resetSample,
+    clearAll,
+    importServices,
+    toast,
+    user,
+    role,
+    isAdmin,
+    canBackup,
+    logout,
+  } = useApp();
   const [confirm, setConfirm] = useState(null);
-  const [pendingImport, setPendingImport] = useState(null); // { services, skipped, replacing }
+  const [pendingImport, setPendingImport] = useState(null);
+  const [usersSheetOpen, setUsersSheetOpen] = useState(false);
   const fileRef = useRef(null);
 
   const handleExport = async () => {
@@ -47,7 +270,7 @@ function SettingsSheet({ open, onClose }) {
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
-    e.target.value = ''; // permite elegir el mismo archivo otra vez
+    e.target.value = '';
     if (!file) return;
     try {
       const { services, skipped } = parseServices(JSON.parse(await file.text()));
@@ -74,20 +297,81 @@ function SettingsSheet({ open, onClose }) {
   const importMessage = pendingImport && (
     <>
       Se importarán <strong>{plural(pendingImport.services.length, 'servicio', 'servicios')}</strong>.
-      {pendingImport.replacing > 0 && ` ${plural(pendingImport.replacing, 'reemplazará', 'reemplazarán')} a un servicio guardado con la misma fecha.`}
-      {pendingImport.skipped.length > 0 && ` Se omitieron ${plural(pendingImport.skipped.length, 'entrada no válida', 'entradas no válidas')}.`}
+      {pendingImport.replacing > 0 &&
+        ` ${plural(pendingImport.replacing, 'reemplazará', 'reemplazarán')} a un servicio guardado con la misma fecha.`}
+      {pendingImport.skipped.length > 0 &&
+        ` Se omitieron ${plural(pendingImport.skipped.length, 'entrada no válida', 'entradas no válidas')}.`}
       {' '}Los demás servicios guardados se conservan.
     </>
   );
+
   const themes = [
     { id: 'system', label: 'Sistema', icon: Monitor },
     { id: 'light', label: 'Claro', icon: Sun },
     { id: 'dark', label: 'Oscuro', icon: Moon },
   ];
+
   return (
     <>
-      <Sheet open={open && !confirm && !pendingImport} onClose={onClose} title="Ajustes">
-        <h3 className="mt-2 mb-2 text-sm font-semibold">Apariencia</h3>
+      <Sheet open={open && !confirm && !pendingImport && !usersSheetOpen} onClose={onClose} title="Ajustes">
+        {/* Perfil del usuario actual */}
+        <h3 className="mt-2 mb-2 text-sm font-semibold">Tu cuenta</h3>
+        <div className="rounded-2xl border border-line bg-sunken/60 p-3.5">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              {user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName || 'Usuario'}
+                  referrerPolicy="no-referrer"
+                  className="size-10 rounded-full border border-line"
+                />
+              ) : (
+                <div className="flex size-10 items-center justify-center rounded-full bg-brand-blue text-white">
+                  <User size={20} />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-sm font-bold text-ink">{user?.displayName || 'Miembro del equipo'}</p>
+                  <RoleBadge role={role} />
+                </div>
+                <p className="truncate text-xs text-muted">{user?.email}</p>
+              </div>
+            </div>
+            <Button variant="secondary" icon={LogOut} onClick={logout} className="w-full justify-center text-xs">
+              Cerrar sesión
+            </Button>
+          </div>
+        </div>
+
+        {/* Gestor de Usuarios (Solo Admin) */}
+        {isAdmin && (
+          <>
+            <h3 className="mt-6 mb-2 text-sm font-semibold">Administración</h3>
+            <div className="rounded-2xl border border-line bg-surface p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-semibold text-ink">Gestor de Usuarios y Roles</p>
+                  <p className="text-xs text-muted">
+                    Gestiona los roles de acceso (Admin, Gestor de canciones, Visualizador).
+                  </p>
+                </div>
+                <Button
+                  variant="primary"
+                  icon={Users}
+                  onClick={() => setUsersSheetOpen(true)}
+                  className="shrink-0 text-xs"
+                >
+                  Gestionar
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Apariencia */}
+        <h3 className="mt-6 mb-2 text-sm font-semibold">Apariencia</h3>
         <div className="grid grid-cols-3 gap-2">
           {themes.map(({ id, label, icon: Icon }) => (
             <button
@@ -97,7 +381,7 @@ function SettingsSheet({ open, onClose }) {
               onClick={() => setTheme(id)}
               className={cx(
                 'flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border text-sm font-medium',
-                theme === id ? 'border-accent bg-accent-soft' : 'border-line hover:bg-sunken',
+                theme === id ? 'border-accent bg-accent-soft text-ink' : 'border-line hover:bg-sunken text-muted',
               )}
             >
               <Icon size={20} aria-hidden />
@@ -105,37 +389,64 @@ function SettingsSheet({ open, onClose }) {
             </button>
           ))}
         </div>
-        <h3 className="mt-6 mb-1 text-sm font-semibold">Copia de seguridad</h3>
-        <p className="mb-3 text-sm text-muted">
-          Por ahora los servicios se guardan solo en este navegador. Exporta un archivo para tener una copia, o importa uno para traer servicios.
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button variant="secondary" icon={Download} onClick={handleExport}>Exportar JSON</Button>
-          <Button variant="secondary" icon={Upload} onClick={() => fileRef.current?.click()}>Importar JSON</Button>
-          <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleFile} />
-        </div>
-        <h3 className="mt-6 mb-2 text-sm font-semibold">Datos de prueba</h3>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button variant="secondary" onClick={() => setConfirm('sample')}>Cargar datos de ejemplo</Button>
-          <Button variant="danger" onClick={() => setConfirm('clear')}>Borrar todos los servicios</Button>
-        </div>
+
+        {/* Copia de seguridad e importación (EXCLUSIVO ADMIN) */}
+        {canBackup && (
+          <>
+            <h3 className="mt-6 mb-1 text-sm font-semibold">Copia de seguridad e importación</h3>
+            <p className="mb-3 text-xs text-muted">
+              Exclusivo para administradores. Exporta un respaldo en formato JSON o importa servicios en lote.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button variant="secondary" icon={Download} onClick={handleExport}>
+                Exportar JSON
+              </Button>
+              <Button variant="secondary" icon={Upload} onClick={() => fileRef.current?.click()}>
+                Importar JSON
+              </Button>
+              <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleFile} />
+            </div>
+          </>
+        )}
+
+        {/* Datos de prueba (EXCLUSIVO ADMIN) */}
+        {isAdmin && (
+          <>
+            <h3 className="mt-6 mb-2 text-sm font-semibold">Gestión de datos</h3>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button variant="secondary" onClick={() => setConfirm('sample')}>
+                Cargar datos de ejemplo
+              </Button>
+              <Button variant="danger" onClick={() => setConfirm('clear')}>
+                Borrar todos los servicios
+              </Button>
+            </div>
+          </>
+        )}
       </Sheet>
+
+      <UserManagementSheet open={usersSheetOpen} onClose={() => setUsersSheetOpen(false)} />
+
       <ConfirmDialog
         open={!!confirm}
         title={confirm === 'clear' ? '¿Borrar todos los servicios?' : '¿Cargar datos de ejemplo?'}
         message={
           confirm === 'clear'
-            ? 'Se eliminarán todos los servicios guardados en este navegador. No se puede deshacer.'
-            : 'Reemplazará los servicios actuales por 14 servicios de ejemplo.'
+            ? 'Se eliminarán todos los servicios guardados en Firestore. No se puede deshacer.'
+            : 'Reemplazará los servicios actuales por 14 servicios de ejemplo en Firestore.'
         }
         confirmLabel={confirm === 'clear' ? 'Sí, borrar todo' : 'Sí, reemplazar'}
         onCancel={() => setConfirm(null)}
         onConfirm={async () => {
-          if (confirm === 'clear') await clearAll();
-          else await resetSample();
-          toast(confirm === 'clear' ? 'Servicios eliminados' : 'Datos de ejemplo cargados');
-          setConfirm(null);
-          onClose();
+          try {
+            if (confirm === 'clear') await clearAll();
+            else await resetSample();
+            toast(confirm === 'clear' ? 'Servicios eliminados' : 'Datos de ejemplo cargados');
+            setConfirm(null);
+            onClose();
+          } catch (err) {
+            toast(err.message || 'Error en la operación', 'error');
+          }
         }}
       />
       <ConfirmDialog
@@ -152,15 +463,40 @@ function SettingsSheet({ open, onClose }) {
 }
 
 export function Shell({ children }) {
-  const { page, navigate, toasts, dismissToast, pendingNav, confirmLeave, cancelLeave } = useApp();
+  const { page, navigate, toasts, dismissToast, pendingNav, confirmLeave, cancelLeave, user, role, canEdit } = useApp();
   const [settings, setSettings] = useState(false);
+
+  // Músicos visualizadores no tienen la pestaña "Registro"
+  const visibleTabs = canEdit ? TABS : TABS.filter((t) => t.id !== 'registro');
 
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[15rem_1fr]">
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line px-4 py-6 md:flex">
-        <div className="px-2"><Logo /></div>
-        <nav className="mt-8 flex flex-col gap-1" aria-label="Principal">
-          {TABS.map(({ id, label, icon: Icon }) => (
+        <div className="px-2">
+          <Logo />
+        </div>
+
+        {/* Estado del usuario conectado */}
+        <div className="mt-4 px-2">
+          <button
+            type="button"
+            onClick={() => setSettings(true)}
+            className="flex w-full items-center gap-2.5 rounded-2xl bg-sunken/80 px-3 py-2.5 text-left transition hover:bg-sunken"
+          >
+            <div className="flex size-7 items-center justify-center rounded-full bg-brand-blue text-white text-xs font-bold shrink-0">
+              {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <Shield size={14} />}
+            </div>
+            <div className="min-w-0 flex-1 truncate">
+              <p className="truncate text-xs font-bold text-ink">{user?.displayName || user?.email}</p>
+              <div className="mt-0.5">
+                <RoleBadge role={role} />
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <nav className="mt-6 flex flex-col gap-1" aria-label="Principal">
+          {visibleTabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
@@ -176,6 +512,7 @@ export function Shell({ children }) {
             </button>
           ))}
         </nav>
+
         <Button variant="ghost" icon={Settings} className="mt-auto justify-start" onClick={() => setSettings(true)}>
           Ajustes
         </Button>
@@ -184,7 +521,10 @@ export function Shell({ children }) {
       <div className="min-w-0 pb-20 md:pb-12">
         <div className="flex items-center justify-between px-4 pt-2.5 md:hidden">
           <Logo />
-          <IconButton icon={Settings} label="Ajustes" onClick={() => setSettings(true)} />
+          <div className="flex items-center gap-2">
+            <RoleBadge role={role} />
+            <IconButton icon={Settings} label="Ajustes" onClick={() => setSettings(true)} />
+          </div>
         </div>
         <main className="mx-auto w-full max-w-3xl px-4 pt-3 md:px-8 md:pt-10">{children}</main>
       </div>
@@ -193,8 +533,8 @@ export function Shell({ children }) {
         aria-label="Principal"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
-        <ul className="mx-auto grid max-w-md grid-cols-4">
-          {TABS.map(({ id, label, icon: Icon }) => (
+        <ul className={cx('mx-auto grid max-w-md', visibleTabs.length === 3 ? 'grid-cols-3' : 'grid-cols-4')}>
+          {visibleTabs.map(({ id, label, icon: Icon }) => (
             <li key={id}>
               <button
                 type="button"
@@ -220,7 +560,10 @@ export function Shell({ children }) {
         </ul>
       </nav>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-[60] flex flex-col items-center gap-2 px-4 md:bottom-8" aria-live="polite">
+      <div
+        className="pointer-events-none fixed inset-x-0 bottom-20 z-[60] flex flex-col items-center gap-2 px-4 md:bottom-8"
+        aria-live="polite"
+      >
         {toasts.map((t) => (
           <div
             key={t.id}

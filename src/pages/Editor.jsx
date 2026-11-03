@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, History, Info, Plus, Save, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, History, Info, LogIn, Plus, Save, Trash2 } from 'lucide-react';
 import { useApp } from '../app-context';
 import { Band, Setlist } from '../components/Setlist';
 import { Button, Field, IconButton, PageHeader, cx, inputClass } from '../components/ui';
@@ -101,7 +101,7 @@ function RepeatHint({ name, fecha, songByKey }) {
 }
 
 export default function Editor() {
-  const { editDate, catalogs, save, remove, toast, navigate, setDirty } = useApp();
+  const { editDate, catalogs, save, remove, toast, navigate, setDirty, isAdmin, canEdit } = useApp();
   const [step, setStep] = useState(0);
   const [maxStep, setMaxStep] = useState(0);
   const [fecha, setFecha] = useState(editDate || todayISO());
@@ -219,6 +219,11 @@ export default function Editor() {
   return (
     <>
       <PageHeader title={exists ? 'Editar servicio' : 'Nuevo servicio'} />
+      {!canEdit && (
+        <div className="mb-4 rounded-2xl border border-line bg-accent-soft p-3 text-sm font-medium text-ink">
+          Tu rol actual es de Visualizador. No tienes permisos para modificar este servicio.
+        </div>
+      )}
       <Stepper step={step} maxStep={maxStep} onGo={goTo} editing={exists} />
 
       <div className="pb-16 md:pb-3">
@@ -342,7 +347,7 @@ export default function Editor() {
             >
               <Band band={cleanBand} />
             </Card>
-            {exists && (
+            {exists && isAdmin && (
               <Button variant="danger" icon={Trash2} className="w-full" onClick={handleDelete}>
                 Eliminar servicio
               </Button>

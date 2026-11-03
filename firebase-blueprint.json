@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "Service": {
+      "title": "Service",
+      "description": "Un documento por servicio de alabanza con canciones y banda",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Fecha en formato YYYY-MM-DD" },
+        "fecha": { "type": "string", "description": "Fecha del servicio YYYY-MM-DD" },
+        "director": { "type": "string", "description": "Nombre de la persona que dirige la alabanza" },
+        "songs": { "type": "array", "description": "Lista de canciones del servicio con name y artist" },
+        "songKeys": { "type": "array", "description": "Claves normalizadas de las canciones para consultas rapidas" },
+        "band": { "type": "array", "description": "Lista de integrantes de la banda con instrument y person" },
+        "updatedAt": { "type": "number", "description": "Marca temporal en milisegundos de la ultima actualizacion" },
+        "deleted": { "type": "boolean", "description": "Indica si el servicio fue borrado de forma logica" }
+      },
+      "required": ["id", "fecha", "director", "songs", "songKeys", "band", "updatedAt", "deleted"]
+    },
+    "SongIndex": {
+      "title": "SongIndex",
+      "description": "Indice de canciones con frecuencias y fechas",
+      "type": "object",
+      "properties": {
+        "songs": { "type": "object", "description": "Diccionario de canciones por clave normalizada" }
+      }
+    },
+    "PersonIndex": {
+      "title": "PersonIndex",
+      "description": "Indice de personas con participaciones e instrumentos",
+      "type": "object",
+      "properties": {
+        "people": { "type": "object", "description": "Diccionario de personas por clave normalizada" }
+      }
+    },
+    "MetaIndex": {
+      "title": "MetaIndex",
+      "description": "Metadatos y conteo total de servicios",
+      "type": "object",
+      "properties": {
+        "serviceCount": { "type": "number", "description": "Total de servicios activos" }
+      },
+      "required": ["serviceCount"]
+    },
+    "UserRole": {
+      "title": "UserRole",
+      "description": "Asignacion de rol y permisos por correo electronico de Google",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "description": "Correo electronico de Google en minusculas" },
+        "role": { "type": "string", "enum": ["admin", "editor", "viewer"], "description": "Rol asignado en el sistema" },
+        "updatedAt": { "type": "number", "description": "Marca temporal de asignacion" },
+        "updatedBy": { "type": "string", "description": "Correo del administrador que asigno el rol" }
+      },
+      "required": ["email", "role", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/servicios/{fecha}": {
+      "schema": "Service",
+      "description": "Coleccion de servicios de alabanza por fecha"
+    },
+    "/indice/canciones": {
+      "schema": "SongIndex",
+      "description": "Documento con el indice de canciones"
+    },
+    "/indice/personas": {
+      "schema": "PersonIndex",
+      "description": "Documento con el indice de personas"
+    },
+    "/indice/meta": {
+      "schema": "MetaIndex",
+      "description": "Documento con el total de servicios"
+    },
+    "/usuarios/{email}": {
+      "schema": "UserRole",
+      "description": "Coleccion de roles de usuario por correo"
+    }
+  }
+}

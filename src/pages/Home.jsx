@@ -19,7 +19,7 @@ function Stat({ value, label }) {
 }
 
 export default function Home() {
-  const { index, version, navigate } = useApp();
+  const { index, version, navigate, canEdit } = useApp();
   const share = useShare();
 
   // Tres lecturas pequeñas: el próximo servicio, los últimos 4 y los de este mes.
@@ -59,7 +59,13 @@ export default function Home() {
       <Empty
         icon={CalendarPlus}
         title="Aún no hay servicios"
-        action={<Button icon={CalendarPlus} onClick={() => navigate('registro')}>Registrar el primer servicio</Button>}
+        action={
+          canEdit ? (
+            <Button icon={CalendarPlus} onClick={() => navigate('registro')}>
+              Registrar el primer servicio
+            </Button>
+          ) : null
+        }
       >
         Registra el repertorio y el equipo de un servicio para verlo aquí.
       </Empty>
@@ -68,7 +74,7 @@ export default function Home() {
 
   return (
     <div className="space-y-5 md:space-y-8">
-      {plan && (
+      {plan && canEdit && (
         <section className="flex items-center gap-3 rounded-2xl border border-dashed border-brand-blue/50 bg-surface p-3">
           <DateBlock fecha={plan} />
           <div className="min-w-0 flex-1">
@@ -103,8 +109,14 @@ export default function Home() {
           </div>
         )}
         <div className="flex gap-3 border-t border-line px-4 py-2.5 sm:px-6 sm:py-4">
-          <Button variant="secondary" icon={Pencil} onClick={() => navigate('registro', current.fecha)}>Editar</Button>
-          <Button variant="secondary" icon={Share2} onClick={() => share(current)}>Compartir</Button>
+          {canEdit && (
+            <Button variant="secondary" icon={Pencil} onClick={() => navigate('registro', current.fecha)}>
+              Editar
+            </Button>
+          )}
+          <Button variant="secondary" icon={Share2} onClick={() => share(current)}>
+            Compartir
+          </Button>
         </div>
       </section>
 

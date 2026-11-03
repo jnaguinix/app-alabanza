@@ -1,0 +1,104 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function userEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && (
+        userEmail() == 'jnaguinix@gmail.com' ||
+        userEmail() == 'jamesdpuertam@gmail.com'
+      );
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        isSuperAdmin() ||
+        (exists(/databases/$(database)/documents/usuarios/$(userEmail())) &&
+         get(/databases/$(database)/documents/usuarios/$(userEmail())).data.role == 'admin')
+      );
+    }
+
+    function isEditor() {
+      return isSignedIn() && (
+        isAdmin() ||
+        userEmail() == 'katherua@gmail.com' ||
+        userEmail() == 'camilohurtado120@gmail.com' ||
+        (exists(/databases/$(database)/documents/usuarios/$(userEmail())) &&
+         get(/databases/$(database)/documents/usuarios/$(userEmail())).data.role == 'editor')
+      );
+    }
+
+    function hasAccess() {
+      return isSignedIn() && (
+        isEditor() ||
+        userEmail() == 'manuela201022@gmail.com' ||
+        (exists(/databases/$(database)/documents/usuarios/$(userEmail())) &&
+         (get(/databases/$(database)/documents/usuarios/$(userEmail())).data.role == 'viewer' ||
+          get(/databases/$(database)/documents/usuarios/$(userEmail())).data.role == 'editor' ||
+          get(/databases/$(database)/documents/usuarios/$(userEmail())).data.role == 'admin'))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 64 && id.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function isValidService(data) {
+      return data.keys().hasAll(['id', 'fecha', 'director', 'songs', 'songKeys', 'band', 'updatedAt', 'deleted']) &&
+        data.keys().hasOnly(['id', 'fecha', 'director', 'songs', 'songKeys', 'band', 'updatedAt', 'deleted']) &&
+        data.id is string && data.id.size() <= 64 &&
+        data.fecha is string && data.fecha.size() <= 64 &&
+        data.director is string && data.director.size() <= 128 &&
+        data.songs is list && data.songs.size() <= 60 &&
+        data.songKeys is list && data.songKeys.size() <= 60 &&
+        data.band is list && data.band.size() <= 60 &&
+        (data.updatedAt is int || data.updatedAt is float || data.updatedAt is timestamp) &&
+        data.deleted is bool;
+    }
+
+    function isValidUserRole(data) {
+      return data.keys().hasAll(['email', 'role', 'updatedAt']) &&
+        data.keys().hasOnly(['email', 'role', 'updatedAt', 'updatedBy', 'name']) &&
+        data.email is string && data.email.size() <= 128 &&
+        data.role is string && (data.role == 'admin' || data.role == 'editor' || data.role == 'viewer') &&
+        (data.updatedAt is int || data.updatedAt is float || data.updatedAt is timestamp);
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Gestion de roles de usuarios
+    match /usuarios/{email} {
+      allow read: if isSignedIn() && (isAdmin() || userEmail() == email.lower());
+      allow create, update: if isAdmin() && isValidUserRole(request.resource.data) && request.resource.data.email == email.lower();
+      allow delete: if isAdmin() && email.lower() != 'jnaguinix@gmail.com';
+    }
+
+    // Servicios de alabanza
+    match /servicios/{fecha} {
+      allow read: if hasAccess();
+      allow create, update: if isEditor() && isValidId(fecha) && isValidService(request.resource.data) && request.resource.data.id == fecha;
+      allow delete: if isAdmin() && isValidId(fecha);
+    }
+
+    // Indices agregados
+    match /indice/{indexId} {
+      allow read: if hasAccess();
+      allow write: if isEditor() && (indexId == 'canciones' || indexId == 'personas' || indexId == 'meta');
+    }
+
+    // Test doc para chequeo de conexion
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}
