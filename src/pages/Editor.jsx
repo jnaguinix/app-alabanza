@@ -174,14 +174,28 @@ export default function Editor() {
 
   const { songs: cleanSongs, band: cleanBand } = clean(songs, band);
 
-  const availableDirectors = useMemo(
-    () => catalogs.directors.filter((d) => !directors.includes(d)),
-    [catalogs.directors, directors]
+  const officialDirectors = useMemo(
+    () => (catalogs.officialDirectors || []).filter((d) => !directors.includes(d)),
+    [catalogs.officialDirectors, directors]
+  );
+
+  const occasionalDirectors = useMemo(
+    () =>
+      (catalogs.historicalDirectors || []).filter(
+        (d) => !(catalogs.officialDirectors || []).includes(d) && !directors.includes(d)
+      ),
+    [catalogs.historicalDirectors, catalogs.officialDirectors, directors]
   );
 
   const otherTeamMembers = useMemo(
-    () => catalogs.people.filter((p) => !catalogs.directors.includes(p) && !directors.includes(p)),
-    [catalogs.people, catalogs.directors, directors]
+    () =>
+      catalogs.people.filter(
+        (p) =>
+          !(catalogs.officialDirectors || []).includes(p) &&
+          !(catalogs.historicalDirectors || []).includes(p) &&
+          !directors.includes(p)
+      ),
+    [catalogs.people, catalogs.officialDirectors, catalogs.historicalDirectors, directors]
   );
 
   const availableInstruments = useMemo(() => {
@@ -337,16 +351,29 @@ export default function Editor() {
                           }
                         }}
                         className={cx(inputClass, errors.directors && 'border-danger')}
-                        aria-label="Añadir director del equipo oficial"
+                        aria-label="Añadir quién dirige el servicio"
                       >
-                        <option value="">+ Añadir director del directorio oficial…</option>
-                        {availableDirectors.map((name) => (
-                          <option key={name} value={name}>
-                            {name} (Director oficial)
-                          </option>
-                        ))}
+                        <option value="">+ Seleccionar quién dirige este servicio…</option>
+                        {officialDirectors.length > 0 && (
+                          <optgroup label="Directores principales / habilitados">
+                            {officialDirectors.map((name) => (
+                              <option key={name} value={name}>
+                                {name} (Director oficial)
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {occasionalDirectors.length > 0 && (
+                          <optgroup label="Directores ocasionales (del historial)">
+                            {occasionalDirectors.map((name) => (
+                              <option key={name} value={name}>
+                                {name} (Dirección ocasional)
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
                         {otherTeamMembers.length > 0 && (
-                          <optgroup label="Otros integrantes del equipo">
+                          <optgroup label="Músicos y otros integrantes del equipo">
                             {otherTeamMembers.map((name) => (
                               <option key={name} value={name}>
                                 {name}
@@ -363,7 +390,7 @@ export default function Editor() {
                       </p>
                     ) : (
                       <p className="text-xs text-muted">
-                        Selecciona uno o más integrantes del equipo oficial (puedes añadir múltiples con el botón +).
+                        Selecciona uno o más integrantes (directores oficiales, músicos o coristas que dirijan este servicio).
                       </p>
                     )}
                   </div>

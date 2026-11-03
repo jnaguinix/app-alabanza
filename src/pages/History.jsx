@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { Calendar, Search, SearchX, X } from 'lucide-react';
 import { useApp } from '../app-context';
 import { ServiceCard } from '../components/ServiceCard';
-import { Button, Chip, Empty, PageHeader, Skeleton, inputClass } from '../components/ui';
+import { Button, Chip, Empty, PageHeader, ScrollableBar, Skeleton, inputClass } from '../components/ui';
 import { queryServices } from '../data/store';
 import { monthKey, monthLabel } from '../lib/format';
 
@@ -75,7 +75,11 @@ export default function History() {
             className={`${inputClass} pl-10`}
           />
         </div>
-        <div className="-mx-4 flex gap-2 no-scrollbar overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+        <ScrollableBar
+          containerClassName="-mx-4 px-4 md:mx-0 md:px-0"
+          className="pb-1"
+          label="Filtro de directores y fechas"
+        >
           <Chip active={showDates || !!(from || to)} onClick={() => setShowDates(!showDates)}>
             <Calendar size={14} aria-hidden /> Fechas
           </Chip>
@@ -84,7 +88,7 @@ export default function History() {
               {d}
             </Chip>
           ))}
-        </div>
+        </ScrollableBar>
         {showDates && (
           <div className="grid grid-cols-2 gap-3">
             <label className="text-sm font-semibold">

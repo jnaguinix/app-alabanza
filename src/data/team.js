@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { keyOf } from '../lib/format';
 
@@ -21,15 +21,55 @@ export const DEFAULT_MEMBERS = [
   { name: 'Mariana Castro', canDirect: false, instruments: ['Voz'] },
 ];
 
+let teamCache = null;
+let teamCachePromise = null;
+let teamCacheTimestamp = 0;
+const TEAM_TTL_MS = 5 * 60 * 1000;
+
+export function invalidateTeamCache() {
+  teamCache = null;
+  teamCachePromise = null;
+  teamCacheTimestamp = 0;
+}
+
 /**
- * Obtiene la lista oficial de miembros del equipo.
+ * Obtiene la lista oficial de miembros del equipo con caché en memoria.
+ * Evita múltiples lecturas a Firestore cada vez que se abre un selector o página.
  */
-export async function listTeamMembers() {
-  try {
-    const snap = await getDocs(collection(db, 'integrantes'));
-    if (snap.empty) {
-      // Auto-inicializar miembros por defecto
-      await seedTeamMembers();
+export async function listTeamMembers(force = false) {
+  const now = Date.now();
+  if (!force && teamCache && now - teamCacheTimestamp < TEAM_TTL_MS) {
+    return teamCache;
+  }
+  if (!force && teamCachePromise) {
+    return teamCachePromise;
+  }
+
+  teamCachePromise = (async () => {
+    try {
+      const snap = await getDocs(collection(db, 'integrantes'));
+      if (snap.empty) {
+        // Auto-inicializar miembros por defecto en lote
+        await seedTeamMembers();
+        teamCache = DEFAULT_MEMBERS.map((m) => ({
+          id: keyOf(m.name),
+          name: m.name,
+          canDirect: m.canDirect ?? true,
+          instruments: m.instruments || ['Voz'],
+          active: true,
+        })).sort((a, b) => a.name.localeCompare(b.name));
+        teamCacheTimestamp = Date.now();
+        return teamCache;
+      }
+
+      teamCache = snap.docs
+        .map((d) => d.data())
+        .filter((m) => m.active !== false)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      teamCacheTimestamp = Date.now();
+      return teamCache;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'integrantes');
       return DEFAULT_MEMBERS.map((m) => ({
         id: keyOf(m.name),
         name: m.name,
@@ -37,22 +77,12 @@ export async function listTeamMembers() {
         instruments: m.instruments || ['Voz'],
         active: true,
       })).sort((a, b) => a.name.localeCompare(b.name));
+    } finally {
+      teamCachePromise = null;
     }
+  })();
 
-    return snap.docs
-      .map((d) => d.data())
-      .filter((m) => m.active !== false)
-      .sort((a, b) => a.name.localeCompare(b.name));
-  } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, 'integrantes');
-    return DEFAULT_MEMBERS.map((m) => ({
-      id: keyOf(m.name),
-      name: m.name,
-      canDirect: m.canDirect ?? true,
-      instruments: m.instruments || ['Voz'],
-      active: true,
-    })).sort((a, b) => a.name.localeCompare(b.name));
-  }
+  return teamCachePromise;
 }
 
 /**
@@ -76,6 +106,7 @@ export async function saveTeamMember({ id, name, canDirect = true, instruments =
 
   try {
     await setDoc(doc(db, 'integrantes', memberId), payload);
+    invalidateTeamCache();
     return payload;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `integrantes/${memberId}`);
@@ -88,31 +119,73 @@ export async function saveTeamMember({ id, name, canDirect = true, instruments =
 export async function deleteTeamMember(id) {
   try {
     await deleteDoc(doc(db, 'integrantes', id));
+    invalidateTeamCache();
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `integrantes/${id}`);
   }
 }
 
 /**
- * Inicializa los integrantes por defecto si no existen.
+ * Guarda múltiples integrantes en Firestore en una operación por lote.
+ */
+export async function batchSaveTeamMembers(members) {
+  if (!Array.isArray(members) || members.length === 0) return [];
+  const BATCH_SIZE = 450;
+  const saved = [];
+
+  for (let i = 0; i < members.length; i += BATCH_SIZE) {
+    const chunk = members.slice(i, i + BATCH_SIZE);
+    const batch = writeBatch(db);
+    for (const m of chunk) {
+      const memberName = (m.name || '').trim();
+      if (!memberName) continue;
+      const memberId = m.id || keyOf(memberName);
+      const payload = {
+        id: memberId,
+        name: memberName,
+        canDirect: Boolean(m.canDirect),
+        instruments: Array.isArray(m.instruments) && m.instruments.length ? m.instruments : ['Voz'],
+        active: m.active !== false,
+        updatedAt: Date.now(),
+      };
+      batch.set(doc(db, 'integrantes', memberId), payload);
+      saved.push(payload);
+    }
+    await batch.commit();
+  }
+
+  invalidateTeamCache();
+  return saved;
+}
+
+/**
+ * Inicializa los integrantes por defecto en una sola operación atómica si no existen.
  */
 export async function seedTeamMembers() {
+  const SEED_KEY = 'alabanzapp:team_seeded_v1';
   try {
+    if (localStorage.getItem(SEED_KEY)) return;
+  } catch {}
+
+  try {
+    const batch = writeBatch(db);
     for (const m of DEFAULT_MEMBERS) {
       const memberId = keyOf(m.name);
       const docRef = doc(db, 'integrantes', memberId);
-      const snap = await getDoc(docRef);
-      if (!snap.exists()) {
-        await setDoc(docRef, {
-          id: memberId,
-          name: m.name,
-          canDirect: m.canDirect ?? true,
-          instruments: m.instruments || ['Voz'],
-          active: true,
-          updatedAt: Date.now(),
-        });
-      }
+      batch.set(docRef, {
+        id: memberId,
+        name: m.name,
+        canDirect: m.canDirect ?? true,
+        instruments: m.instruments || ['Voz'],
+        active: true,
+        updatedAt: Date.now(),
+      });
     }
+    await batch.commit();
+    invalidateTeamCache();
+    try {
+      localStorage.setItem(SEED_KEY, 'true');
+    } catch {}
   } catch (err) {
     console.warn('Nota en semilla de integrantes:', err);
   }

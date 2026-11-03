@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BarChart3, Search, SearchX } from 'lucide-react';
-import { useApp } from '../app-context';
-import { Chip, Empty, PageHeader, Sheet, Skeleton, cx, inputClass } from '../components/ui';
+import { Chip, Empty, PageHeader, ScrollableBar, Sheet, Skeleton, cx, inputClass } from '../components/ui';
 import { DateBlock } from '../components/ServiceCard';
 import { DIRECTOR_ROLE, getServices, queryServices } from '../data/store';
 import { useAsync } from '../hooks/useAsync';
@@ -91,9 +90,9 @@ function BarList({ title, rows, unit, onPick, empty, color }) {
 
 function ChipRow({ label, children }) {
   return (
-    <div className="-mx-4 flex gap-2 no-scrollbar overflow-x-auto px-4 md:mx-0 md:px-0" role="group" aria-label={label}>
+    <ScrollableBar containerClassName="-mx-4 px-4 md:mx-0 md:px-0" label={label}>
       {children}
-    </div>
+    </ScrollableBar>
   );
 }
 

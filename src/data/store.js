@@ -59,10 +59,11 @@ function applyService(index, docData, sign) {
   // Contabilizar cada director de forma individual en el índice
   const directorList = Array.isArray(docData.directors) && docData.directors.length
     ? docData.directors
-    : docData.director
-      ? (docData.director.includes(' y ') ? docData.director.split(' y ') : [docData.director])
-      : [];
-  directorList.forEach((d) => add(d.trim(), DIRECTOR_ROLE));
+    : (docData.director || '')
+        .split(/\s*(?:\/|,|&|\by\b)\s*/i)
+        .map((d) => d.trim())
+        .filter(Boolean);
+  directorList.forEach((d) => add(d, DIRECTOR_ROLE));
 
   (docData.band || []).forEach((m) => add(m.person, m.instrument));
 
@@ -114,28 +115,81 @@ const toDoc = ({ fecha, director, directors, songs = [], band = [], updatedAt = 
   };
 };
 
-/* ---------- Servicios (Consultas y Lecturas) ---------- */
+/* ---------- Caché en Memoria y Deduplicación de Consultas ---------- */
+
+let servicesCache = null;
+let servicesCachePromise = null;
+let servicesCacheTimestamp = 0;
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutos de vigencia automática o hasta la siguiente mutación
+
+export function invalidateServicesCache() {
+  servicesCache = null;
+  servicesCachePromise = null;
+  servicesCacheTimestamp = 0;
+}
+
+/**
+ * Obtiene todos los servicios activos desde la caché en memoria o desde Firestore.
+ * Deduplica consultas concurrentes en una sola llamada de red.
+ */
+export async function fetchAllActiveServices(force = false) {
+  const now = Date.now();
+  if (!force && servicesCache && now - servicesCacheTimestamp < CACHE_TTL_MS) {
+    return servicesCache;
+  }
+  if (!force && servicesCachePromise) {
+    return servicesCachePromise;
+  }
+
+  servicesCachePromise = (async () => {
+    try {
+      const qCol = collection(db, 'servicios');
+      let snapshot;
+      try {
+        const q = query(qCol, where('deleted', '==', false), orderBy('fecha', 'desc'));
+        snapshot = await getDocs(q);
+      } catch {
+        snapshot = await getDocs(qCol);
+      }
+
+      servicesCache = snapshot.docs
+        .map((d) => d.data())
+        .filter((s) => !s.deleted);
+      servicesCacheTimestamp = Date.now();
+      return servicesCache;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'servicios');
+      return servicesCache || [];
+    } finally {
+      servicesCachePromise = null;
+    }
+  })();
+
+  return servicesCachePromise;
+}
+
+/* ---------- Servicios (Consultas y Lecturas Optimizadas) ---------- */
 
 export async function queryServices({ from, to, director, text, order = 'desc', limit: queryLimit, after } = {}) {
   try {
-    const qCol = collection(db, 'servicios');
-    let snapshot;
-    try {
-      const q = query(qCol, where('deleted', '==', false), orderBy('fecha', order));
-      snapshot = await getDocs(q);
-    } catch {
-      // Fallback si el índice compuesto tarda unos instantes en propagarse
-      snapshot = await getDocs(qCol);
-    }
-
-    let list = snapshot.docs
-      .map((d) => d.data())
-      .filter((s) => !s.deleted);
+    const all = await fetchAllActiveServices();
+    let list = [...all];
 
     const qText = normalize(text);
     if (from) list = list.filter((s) => s.fecha >= from);
-    if (to) list = list.filter((s) => s.fecha <= to);
-    if (director) list = list.filter((s) => s.director === director);
+    if (director) {
+      const qDir = normalize(director);
+      list = list.filter((s) => {
+        if (Array.isArray(s.directors) && s.directors.length) {
+          return s.directors.some((d) => normalize(d) === qDir);
+        }
+        const splitted = (s.director || '')
+          .split(/\s*(?:\/|,|&|\by\b)\s*/i)
+          .map((d) => normalize(d.trim()))
+          .filter(Boolean);
+        return splitted.includes(qDir) || normalize(s.director) === qDir;
+      });
+    }
     if (qText) {
       list = list.filter(
         (s) =>
@@ -162,6 +216,12 @@ export async function queryServices({ from, to, director, text, order = 'desc', 
 
 export async function getService(fecha) {
   if (!fecha) return null;
+  // 1. Intentar resolver de inmediato desde la caché en memoria (0 lecturas a Firestore)
+  if (servicesCache) {
+    const cached = servicesCache.find((s) => s.fecha === fecha);
+    if (cached) return cached;
+  }
+
   try {
     const snap = await getDoc(doc(db, 'servicios', fecha));
     if (!snap.exists()) return null;
@@ -175,6 +235,15 @@ export async function getService(fecha) {
 
 export async function getServices(fechas) {
   if (!fechas || !fechas.length) return [];
+  // 1. Resolver desde la lista en memoria si está disponible (0 lecturas a Firestore)
+  const all = await fetchAllActiveServices();
+  const dateSet = new Set(fechas);
+  const matched = all.filter((s) => dateSet.has(s.fecha));
+  if (matched.length === fechas.length) {
+    return matched.sort((a, b) => b.fecha.localeCompare(a.fecha));
+  }
+
+  // Fallback seguro si alguna fecha no estuviera en caché
   try {
     const snaps = await Promise.all(fechas.map((f) => getDoc(doc(db, 'servicios', f))));
     return snaps
@@ -183,7 +252,7 @@ export async function getServices(fechas) {
       .sort((a, b) => b.fecha.localeCompare(a.fecha));
   } catch (error) {
     handleFirestoreError(error, OperationType.GET, 'servicios');
-    return [];
+    return matched.sort((a, b) => b.fecha.localeCompare(a.fecha));
   }
 }
 
@@ -227,6 +296,7 @@ export async function saveService({ fecha, director, directors, songs, band }) {
       savedDoc = newDoc;
     });
 
+    invalidateServicesCache();
     return savedDoc;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `servicios/${fecha}`);
@@ -265,6 +335,7 @@ export async function deleteService(fecha) {
       transaction.set(personasRef, { people: index.people });
       transaction.set(metaRef, { serviceCount: index.serviceCount });
     });
+    invalidateServicesCache();
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `servicios/${fecha}`);
   }
@@ -344,6 +415,7 @@ export async function importServices(list) {
       await batch.commit();
     }
 
+    invalidateServicesCache();
     return { imported: list.length, replaced };
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, 'servicios');
@@ -352,10 +424,8 @@ export async function importServices(list) {
 
 export async function exportServices() {
   try {
-    const snapshot = await getDocs(collection(db, 'servicios'));
-    return snapshot.docs
-      .map((d) => d.data())
-      .filter((d) => !d.deleted)
+    const list = await fetchAllActiveServices();
+    return list
       .sort((a, b) => a.fecha.localeCompare(b.fecha))
       .map(({ fecha, director, songs, band }) => ({ fecha, director, songs, band }));
   } catch (error) {
@@ -434,6 +504,7 @@ export async function clearAll() {
       batch.set(doc(db, 'indice', 'meta'), { serviceCount: 0 });
       await batch.commit();
     }
+    invalidateServicesCache();
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, 'servicios');
   }

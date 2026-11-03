@@ -188,19 +188,30 @@ export function AppProvider({ children }) {
 
   // Catálogos para autocompletar y selección oficial
   const catalogs = useMemo(() => {
+    // Desglosar cadenas compuestas como "Camilo / Kathe", "Camilo y Hanny", etc.
+    const splitNames = (str) => {
+      if (!str) return [];
+      return String(str)
+        .split(/\s*(?:\/|,|&|\by\b)\s*/i)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    };
+
     const teamPeople = teamMembers.map((m) => m.name);
-    const indexPeople = (index.people || []).map((p) => p.name);
-    const allPeople = [...new Set([...teamPeople, ...indexPeople])].sort((a, b) => a.localeCompare(b));
+    const indexPeopleRaw = (index.people || []).map((p) => p.name);
+    const allPeople = [...new Set([...teamPeople, ...indexPeopleRaw.flatMap(splitNames)])].sort((a, b) => a.localeCompare(b));
 
     const teamDirectors = teamMembers.filter((m) => m.canDirect).map((m) => m.name);
-    const indexDirectors = (index.people || []).filter((p) => p.roles?.[DIRECTOR_ROLE]).map((p) => p.name);
-    const allDirectors = teamDirectors.length
-      ? teamDirectors
-      : [...new Set(indexDirectors)].sort((a, b) => a.localeCompare(b));
+    const indexDirectorsRaw = (index.people || []).filter((p) => p.roles?.[DIRECTOR_ROLE]).map((p) => p.name);
+    // Unir directores oficiales y personas individuales que han dirigido en el historial
+    const historicalDirectors = [...new Set(indexDirectorsRaw.flatMap(splitNames))];
+    const allDirectors = [...new Set([...teamDirectors, ...historicalDirectors])].sort((a, b) => a.localeCompare(b));
 
     return {
       people: allPeople,
       directors: allDirectors,
+      officialDirectors: teamDirectors,
+      historicalDirectors,
       teamMembers,
       instruments: index.instruments?.length
         ? index.instruments

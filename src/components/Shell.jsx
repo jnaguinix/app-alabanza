@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BarChart3,
+  Check,
   Download,
   History,
   Home,
@@ -10,9 +11,11 @@ import {
   Music,
   PenLine,
   Plus,
+  Search,
   Settings,
   Shield,
   ShieldCheck,
+  Sparkles,
   Sun,
   Trash2,
   Upload,
@@ -20,13 +23,14 @@ import {
   UserCheck,
   UserPlus,
   Users,
+  X,
 } from 'lucide-react';
 import { useApp } from '../app-context';
 import { exportServices, previewImport } from '../data/store';
 import { parseServices } from '../data/importer';
 import { listUsers, removeUser, ROLES, setUserRole } from '../data/users';
-import { deleteTeamMember, listTeamMembers, saveTeamMember } from '../data/team';
-import { plural, todayISO } from '../lib/format';
+import { batchSaveTeamMembers, deleteTeamMember, listTeamMembers, saveTeamMember } from '../data/team';
+import { keyOf, plural, todayISO } from '../lib/format';
 import { Button, ConfirmDialog, IconButton, Sheet, cx } from './ui';
 
 const TABS = [
@@ -241,14 +245,46 @@ function UserManagementSheet({ open, onClose }) {
   );
 }
 
+const PRESET_INSTRUMENTS = [
+  'Voz',
+  'Coros',
+  'Piano',
+  'Teclado',
+  'Sintetizador',
+  'Guitarra acústica',
+  'Guitarra eléctrica',
+  'Bajo',
+  'Batería',
+  'Percusión',
+  'Saxofón',
+  'Violín',
+];
+
 function TeamDirectorySheet({ open, onClose }) {
-  const { toast, refreshTeamMembers } = useApp();
+  const { toast, refreshTeamMembers, index } = useApp();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [name, setName] = useState('');
-  const [canDirect, setCanDirect] = useState(true);
-  const [instrument, setInstrument] = useState('Voz');
-  const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('todos'); // 'todos' | 'directores' | 'musicos'
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Formulario nuevo integrante
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newCanDirect, setNewCanDirect] = useState(false);
+  const [newInstruments, setNewInstruments] = useState(['Voz']);
+  const [newCustomInstrument, setNewCustomInstrument] = useState('');
+  const [submittingAdd, setSubmittingAdd] = useState(false);
+
+  // Edición de integrante existente
+  const [editingMember, setEditingMember] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editCanDirect, setEditCanDirect] = useState(false);
+  const [editInstruments, setEditInstruments] = useState([]);
+  const [editCustomInstrument, setEditCustomInstrument] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Sincronización y borrado
+  const [syncingAll, setSyncingAll] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState(null);
 
   const loadData = async () => {
@@ -264,37 +300,105 @@ function TeamDirectorySheet({ open, onClose }) {
   };
 
   useEffect(() => {
-    if (open) loadData();
+    if (open) {
+      loadData();
+      setEditingMember(null);
+      setShowAddForm(false);
+      setSearchQuery('');
+    }
   }, [open]);
 
+  // Detección de integrantes del historial de servicios que no están en el directorio
+  const missingFromHistory = useMemo(() => {
+    if (!index?.people || !index.people.length) return [];
+    const existingKeys = new Set(members.map((m) => keyOf(m.name)));
+    return index.people
+      .filter((p) => p.name && !existingKeys.has(keyOf(p.name)))
+      .map((p) => {
+        const roles = Object.keys(p.roles || {});
+        const canDirect = Boolean(p.roles?.['Dirige'] > 0);
+        const instruments = roles.filter((r) => r !== 'Dirige');
+        return {
+          name: p.name,
+          canDirect,
+          instruments: instruments.length ? instruments : ['Voz'],
+          servicesCount: p.services || 0,
+        };
+      });
+  }, [index?.people, members]);
+
+  // Guardar nuevo integrante
   const handleAddMember = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return toast('Escribe el nombre del integrante.', 'error');
-    setSubmitting(true);
+    const cleanName = newName.trim();
+    if (!cleanName) return toast('Escribe el nombre del integrante.', 'error');
+    setSubmittingAdd(true);
     try {
       await saveTeamMember({
-        name: name.trim(),
-        canDirect,
-        instruments: [instrument],
+        name: cleanName,
+        canDirect: newCanDirect,
+        instruments: newInstruments.length ? newInstruments : ['Voz'],
       });
-      toast(`Integrante ${name.trim()} guardado en el directorio`);
-      setName('');
+      toast(`Integrante ${cleanName} añadido al directorio`);
+      setNewName('');
+      setNewCanDirect(false);
+      setNewInstruments(['Voz']);
+      setShowAddForm(false);
       await loadData();
       await refreshTeamMembers();
     } catch (err) {
       toast(err.message || 'No se pudo guardar el integrante.', 'error');
     } finally {
-      setSubmitting(false);
+      setSubmittingAdd(false);
     }
   };
 
+  // Abrir editor de integrante
+  const startEditing = (member) => {
+    setEditingMember(member);
+    setEditName(member.name);
+    setEditCanDirect(Boolean(member.canDirect));
+    setEditInstruments(Array.isArray(member.instruments) && member.instruments.length ? [...member.instruments] : ['Voz']);
+    setEditCustomInstrument('');
+  };
+
+  // Guardar edición de integrante
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingMember) return;
+    const cleanName = editName.trim();
+    if (!cleanName) return toast('Escribe el nombre del integrante.', 'error');
+    setSavingEdit(true);
+    try {
+      await saveTeamMember({
+        id: editingMember.id,
+        name: cleanName,
+        canDirect: editCanDirect,
+        instruments: editInstruments.length ? editInstruments : ['Voz'],
+      });
+      toast(`Integrante ${cleanName} actualizado`);
+      setEditingMember(null);
+      await loadData();
+      await refreshTeamMembers();
+    } catch (err) {
+      toast(err.message || 'No se pudieron guardar los cambios.', 'error');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // Toggle rápido de director
   const handleToggleCanDirect = async (member) => {
     try {
       await saveTeamMember({
         ...member,
         canDirect: !member.canDirect,
       });
-      toast(`Rol de director actualizado para ${member.name}`);
+      toast(
+        member.canDirect
+          ? `${member.name} ya no tiene rol principal de director`
+          : `${member.name} habilitado como director`
+      );
       await loadData();
       await refreshTeamMembers();
     } catch {
@@ -302,6 +406,39 @@ function TeamDirectorySheet({ open, onClose }) {
     }
   };
 
+  // Sincronizar todos los integrantes faltantes del historial
+  const handleSyncAllFromHistory = async () => {
+    if (!missingFromHistory.length) return;
+    setSyncingAll(true);
+    try {
+      await batchSaveTeamMembers(missingFromHistory);
+      toast(`${plural(missingFromHistory.length, 'integrante importado', 'integrantes importados')} del historial`);
+      await loadData();
+      await refreshTeamMembers();
+    } catch (err) {
+      toast(err.message || 'Error al importar integrantes del historial.', 'error');
+    } finally {
+      setSyncingAll(false);
+    }
+  };
+
+  // Importar un integrante específico del historial
+  const handleSyncOneFromHistory = async (person) => {
+    try {
+      await saveTeamMember({
+        name: person.name,
+        canDirect: person.canDirect,
+        instruments: person.instruments,
+      });
+      toast(`${person.name} añadido al directorio`);
+      await loadData();
+      await refreshTeamMembers();
+    } catch (err) {
+      toast(err.message || 'Error al importar integrante.', 'error');
+    }
+  };
+
+  // Confirmar eliminación
   const confirmDelete = async () => {
     if (!memberToDelete) return;
     try {
@@ -315,84 +452,469 @@ function TeamDirectorySheet({ open, onClose }) {
     }
   };
 
-  const instrumentOptions = ['Voz', 'Piano', 'Guitarra acústica', 'Guitarra eléctrica', 'Bajo', 'Batería'];
+  // Toggles de instrumentos
+  const toggleInstrumentInList = (list, setList, item) => {
+    if (list.includes(item)) {
+      if (list.length === 1) {
+        toast('El integrante debe tener al menos un instrumento o rol (ej. Voz).', 'error');
+        return;
+      }
+      setList(list.filter((x) => x !== item));
+    } else {
+      setList([...list, item]);
+    }
+  };
+
+  const addCustomInstrumentToList = (list, setList, customValue, setCustomValue) => {
+    const val = customValue.trim();
+    if (!val) return;
+    if (!list.includes(val)) {
+      setList([...list, val]);
+    }
+    setCustomValue('');
+  };
+
+  // Clasificación para filtros
+  const isDirector = (m) => Boolean(m.canDirect);
+  const isMusician = (m) => {
+    const ins = (m.instruments || []).map((i) => i.toLowerCase());
+    return ins.some((i) => !['voz', 'coros'].includes(i)) || !m.canDirect;
+  };
+
+  const directorsCount = useMemo(() => members.filter(isDirector).length, [members]);
+  const musiciansCount = useMemo(() => members.filter(isMusician).length, [members]);
+
+  // Lista filtrada
+  const filteredMembers = useMemo(() => {
+    return members.filter((m) => {
+      if (activeTab === 'directores' && !isDirector(m)) return false;
+      if (activeTab === 'musicos' && !isMusician(m)) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchName = m.name.toLowerCase().includes(q);
+        const matchIns = (m.instruments || []).some((i) => i.toLowerCase().includes(q));
+        return matchName || matchIns;
+      }
+      return true;
+    });
+  }, [members, activeTab, searchQuery]);
 
   return (
     <>
       <Sheet open={open && !memberToDelete} onClose={onClose} title="Directorio del Equipo">
-        <p className="mb-4 text-xs text-muted">
-          Lista oficial de personas disponibles para dirigir o tocar en los servicios.
+        <p className="mb-3 text-xs text-muted">
+          Directorio oficial de músicos, coristas y directores para el servicio de alabanza.
         </p>
 
-        {/* Formulario nuevo integrante */}
-        <form onSubmit={handleAddMember} className="mb-6 rounded-2xl border border-line bg-sunken/60 p-3.5">
-          <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-muted">Añadir integrante oficial</h4>
-          <div className="space-y-2.5">
-            <div>
-              <label htmlFor="member-name-input" className="sr-only">Nombre y apellido</label>
-              <input
-                id="member-name-input"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nombre del integrante (ej. Laura Torres)"
-                className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/60 focus:border-brand-blue"
-              />
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <select
-                value={instrument}
-                onChange={(e) => setInstrument(e.target.value)}
-                className="flex-1 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand-blue"
+        {/* Banner de Sincronización con el Historial */}
+        {missingFromHistory.length > 0 && (
+          <div className="mb-4 rounded-2xl border border-brand-yellow/40 bg-accent-soft/80 p-3.5 text-xs text-ink">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <Sparkles size={18} className="mt-0.5 shrink-0 text-brand-yellow" aria-hidden />
+                <div>
+                  <h4 className="font-bold text-ink">
+                    {missingFromHistory.length} {missingFromHistory.length === 1 ? 'persona detectada' : 'personas detectadas'} en el historial
+                  </h4>
+                  <p className="mt-0.5 text-muted">
+                    Hay músicos, coristas o directores registrados en servicios pasados que aún no están en el directorio oficial.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                onClick={handleSyncAllFromHistory}
+                disabled={syncingAll}
+                className="shrink-0 text-xs px-2.5 py-1.5"
               >
-                {instrumentOptions.map((ins) => (
-                  <option key={ins} value={ins}>{ins}</option>
-                ))}
-              </select>
-
-              <label className="flex items-center gap-2 px-2 py-1.5 text-xs font-semibold text-ink cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={canDirect}
-                  onChange={(e) => setCanDirect(e.target.checked)}
-                  className="size-4 rounded border-line text-brand-blue"
-                />
-                <span>Puede dirigir</span>
-              </label>
-
-              <Button type="submit" variant="primary" icon={Plus} disabled={submitting} className="shrink-0 text-xs">
-                Guardar
+                {syncingAll ? 'Importando…' : `Importar todos (${missingFromHistory.length})`}
               </Button>
             </div>
+
+            <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-line/60">
+              {missingFromHistory.slice(0, 8).map((p) => (
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => handleSyncOneFromHistory(p)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-2 py-1 text-[11px] font-semibold text-ink hover:border-brand-blue hover:bg-brand-blue/10 transition"
+                  title="Haz clic para agregar al directorio oficial"
+                >
+                  <Plus size={12} />
+                  <span>{p.name}</span>
+                  <span className="text-[10px] text-muted">({p.instruments.slice(0, 2).join(', ')})</span>
+                </button>
+              ))}
+              {missingFromHistory.length > 8 && (
+                <span className="self-center px-1 text-[11px] text-muted">
+                  +{missingFromHistory.length - 8} más
+                </span>
+              )}
+            </div>
           </div>
-        </form>
+        )}
 
-        {/* Lista de integrantes */}
-        <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
-          Integrantes oficiales ({members.length})
-        </h4>
+        {/* Panel de Edición de Integrante (Modal/Drawer integrado) */}
+        {editingMember && (
+          <form onSubmit={handleSaveEdit} className="mb-5 rounded-2xl border-2 border-brand-blue bg-surface p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 border-b border-line pb-2 mb-3">
+              <div className="flex items-center gap-2">
+                <PenLine size={16} className="text-brand-blue" />
+                <h4 className="text-sm font-bold text-ink">Editar integrante: {editingMember.name}</h4>
+              </div>
+              <IconButton icon={X} label="Cerrar edición" onClick={() => setEditingMember(null)} />
+            </div>
 
+            <div className="space-y-3.5">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-ink">Nombre completo</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand-blue"
+                  placeholder="Nombre y apellido"
+                  required
+                />
+              </div>
+
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="text-xs font-semibold text-ink">Instrumentos y roles que desempeña</label>
+                  <span className="text-[10px] text-muted">Selecciona todos los que apliquen</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {PRESET_INSTRUMENTS.map((ins) => {
+                    const active = editInstruments.includes(ins);
+                    return (
+                      <button
+                        key={ins}
+                        type="button"
+                        onClick={() => toggleInstrumentInList(editInstruments, setEditInstruments, ins)}
+                        className={cx(
+                          'rounded-lg px-2.5 py-1 text-xs font-medium border transition',
+                          active
+                            ? 'border-brand-blue bg-brand-blue text-white shadow-xs'
+                            : 'border-line bg-sunken text-muted hover:border-ink/30 hover:text-ink'
+                        )}
+                      >
+                        {active && <Check size={12} className="inline mr-1 -mt-0.5" />}
+                        {ins}
+                      </button>
+                    );
+                  })}
+                  {/* Instrumentos personalizados que no están en la lista fija */}
+                  {editInstruments
+                    .filter((ins) => !PRESET_INSTRUMENTS.includes(ins))
+                    .map((custom) => (
+                      <button
+                        key={custom}
+                        type="button"
+                        onClick={() => toggleInstrumentInList(editInstruments, setEditInstruments, custom)}
+                        className="rounded-lg px-2.5 py-1 text-xs font-medium border border-brand-blue bg-brand-blue text-white"
+                      >
+                        <Check size={12} className="inline mr-1 -mt-0.5" />
+                        {custom} <span className="ml-1 opacity-70">×</span>
+                      </button>
+                    ))}
+                </div>
+
+                {/* Input para instrumento personalizado */}
+                <div className="mt-2 flex gap-1.5">
+                  <input
+                    type="text"
+                    value={editCustomInstrument}
+                    onChange={(e) => setEditCustomInstrument(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCustomInstrumentToList(
+                          editInstruments,
+                          setEditInstruments,
+                          editCustomInstrument,
+                          setEditCustomInstrument
+                        );
+                      }
+                    }}
+                    placeholder="+ Otro instrumento (ej. Violonchelo, Congas)…"
+                    className="flex-1 rounded-lg border border-line bg-sunken px-2.5 py-1 text-xs text-ink placeholder:text-muted/60"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() =>
+                      addCustomInstrumentToList(
+                        editInstruments,
+                        setEditInstruments,
+                        editCustomInstrument,
+                        setEditCustomInstrument
+                      )
+                    }
+                    className="shrink-0 text-xs px-2.5 py-1"
+                  >
+                    Añadir
+                  </Button>
+                </div>
+              </div>
+
+              {/* Rol de Director */}
+              <div className="rounded-xl border border-line bg-sunken/60 p-3">
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={editCanDirect}
+                    onChange={(e) => setEditCanDirect(e.target.checked)}
+                    className="mt-0.5 size-4 rounded border-line text-brand-blue"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-ink">Puede dirigir alabanza (Director oficial)</span>
+                    <p className="mt-0.5 text-[11px] text-muted">
+                      Aparecerá en el grupo principal de directores al crear o editar servicios.
+                      (Nota: Cualquier músico o corista también puede ser seleccionado para dirigir en servicios individuales).
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <Button type="button" variant="ghost" onClick={() => setEditingMember(null)} className="text-xs">
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="primary" disabled={savingEdit} className="text-xs">
+                  {savingEdit ? 'Guardando…' : 'Guardar cambios'}
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
+
+        {/* Formulario nuevo integrante (Colapsable) */}
+        {!editingMember && (
+          <div className="mb-4">
+            {!showAddForm ? (
+              <div className="flex justify-between items-center gap-2">
+                <Button
+                  variant="secondary"
+                  icon={Plus}
+                  onClick={() => setShowAddForm(true)}
+                  className="w-full text-xs py-2"
+                >
+                  Añadir nuevo integrante
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleAddMember} className="rounded-2xl border border-line bg-sunken/60 p-3.5">
+                <div className="flex items-center justify-between mb-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted">Nuevo integrante</h4>
+                  <IconButton icon={X} label="Cerrar formulario" onClick={() => setShowAddForm(false)} />
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="sr-only">Nombre del integrante</label>
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      placeholder="Nombre y apellido (ej. Laura Torres)"
+                      className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/60 focus:border-brand-blue"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-ink">Instrumentos / Voces</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PRESET_INSTRUMENTS.map((ins) => {
+                        const active = newInstruments.includes(ins);
+                        return (
+                          <button
+                            key={ins}
+                            type="button"
+                            onClick={() => toggleInstrumentInList(newInstruments, setNewInstruments, ins)}
+                            className={cx(
+                              'rounded-lg px-2.5 py-1 text-xs font-medium border transition',
+                              active
+                                ? 'border-brand-blue bg-brand-blue text-white shadow-xs'
+                                : 'border-line bg-surface text-muted hover:text-ink'
+                            )}
+                          >
+                            {active && <Check size={12} className="inline mr-1 -mt-0.5" />}
+                            {ins}
+                          </button>
+                        );
+                      })}
+                      {newInstruments
+                        .filter((ins) => !PRESET_INSTRUMENTS.includes(ins))
+                        .map((custom) => (
+                          <button
+                            key={custom}
+                            type="button"
+                            onClick={() => toggleInstrumentInList(newInstruments, setNewInstruments, custom)}
+                            className="rounded-lg px-2.5 py-1 text-xs font-medium border border-brand-blue bg-brand-blue text-white"
+                          >
+                            <Check size={12} className="inline mr-1 -mt-0.5" />
+                            {custom}
+                          </button>
+                        ))}
+                    </div>
+
+                    <div className="mt-2 flex gap-1.5">
+                      <input
+                        type="text"
+                        value={newCustomInstrument}
+                        onChange={(e) => setNewCustomInstrument(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addCustomInstrumentToList(
+                              newInstruments,
+                              setNewInstruments,
+                              newCustomInstrument,
+                              setNewCustomInstrument
+                            );
+                          }
+                        }}
+                        placeholder="+ Otro instrumento…"
+                        className="flex-1 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs text-ink placeholder:text-muted/60"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() =>
+                          addCustomInstrumentToList(
+                            newInstruments,
+                            setNewInstruments,
+                            newCustomInstrument,
+                            setNewCustomInstrument
+                          )
+                        }
+                        className="shrink-0 text-xs px-2.5 py-1"
+                      >
+                        Añadir
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={newCanDirect}
+                        onChange={(e) => setNewCanDirect(e.target.checked)}
+                        className="size-4 rounded border-line text-brand-blue"
+                      />
+                      <span className="text-xs font-semibold text-ink">Puede dirigir alabanza</span>
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                      <Button type="button" variant="ghost" onClick={() => setShowAddForm(false)} className="text-xs">
+                        Cancelar
+                      </Button>
+                      <Button type="submit" variant="primary" disabled={submittingAdd} className="text-xs">
+                        {submittingAdd ? 'Guardando…' : 'Guardar integrante'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* Barra de Búsqueda y Pestañas */}
+        <div className="mb-3 space-y-2">
+          {/* Barra de Búsqueda */}
+          <div className="relative">
+            <Search size={15} aria-hidden className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por nombre o instrumento…"
+              className="w-full rounded-xl border border-line bg-surface py-1.5 pl-8 pr-8 text-xs text-ink placeholder:text-muted/60 focus:border-brand-blue"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted hover:text-ink"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Pestañas de Filtro */}
+          <div className="flex gap-1 rounded-xl border border-line bg-sunken/60 p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('todos')}
+              className={cx(
+                'flex-1 rounded-lg py-1.5 text-xs font-semibold transition',
+                activeTab === 'todos'
+                  ? 'bg-surface text-ink shadow-xs'
+                  : 'text-muted hover:text-ink'
+              )}
+            >
+              Todos ({members.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('directores')}
+              className={cx(
+                'flex-1 rounded-lg py-1.5 text-xs font-semibold transition',
+                activeTab === 'directores'
+                  ? 'bg-surface text-ink shadow-xs'
+                  : 'text-muted hover:text-ink'
+              )}
+            >
+              Directores ({directorsCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('musicos')}
+              className={cx(
+                'flex-1 rounded-lg py-1.5 text-xs font-semibold transition',
+                activeTab === 'musicos'
+                  ? 'bg-surface text-ink shadow-xs'
+                  : 'text-muted hover:text-ink'
+              )}
+            >
+              Músicos ({musiciansCount})
+            </button>
+          </div>
+        </div>
+
+        {/* Lista de Integrantes */}
         {loading ? (
-          <div className="py-8 text-center text-sm text-muted">Cargando integrantes…</div>
+          <div className="py-8 text-center text-sm text-muted">Cargando directorio…</div>
+        ) : filteredMembers.length === 0 ? (
+          <div className="py-8 text-center">
+            <p className="text-sm font-medium text-ink">No se encontraron integrantes</p>
+            <p className="mt-1 text-xs text-muted">
+              {searchQuery ? 'Prueba con otro término de búsqueda.' : 'No hay integrantes en esta pestaña.'}
+            </p>
+          </div>
         ) : (
           <div className="space-y-2">
-            {members.map((m) => (
+            {filteredMembers.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface p-3"
+                className="flex items-center justify-between gap-2.5 rounded-2xl border border-line bg-surface p-3 transition hover:border-brand-blue/30"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold text-ink">{m.name}</p>
+                    <p className="truncate text-sm font-bold text-ink">{m.name}</p>
                     {m.canDirect && (
-                      <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-ink">
-                        Dirige
+                      <span className="rounded-md bg-accent/25 px-1.5 py-0.5 text-[10px] font-extrabold text-ink">
+                        Director(a)
                       </span>
                     )}
                   </div>
-                  <div className="mt-0.5 flex flex-wrap gap-1 text-[11px] text-muted">
+                  <div className="mt-1 flex flex-wrap gap-1 text-[11px] text-muted">
                     {(m.instruments || []).map((ins) => (
-                      <span key={ins} className="rounded bg-sunken px-1.5 py-0.5">
+                      <span key={ins} className="rounded-md bg-sunken px-2 py-0.5 font-medium text-ink/80 border border-line/40">
                         {ins}
                       </span>
                     ))}
@@ -406,13 +928,18 @@ function TeamDirectorySheet({ open, onClose }) {
                     className={cx(
                       'rounded-lg px-2 py-1 text-[11px] font-semibold border transition',
                       m.canDirect
-                        ? 'border-accent bg-accent/15 text-ink'
-                        : 'border-line text-muted hover:bg-sunken',
+                        ? 'border-accent bg-accent/20 text-ink'
+                        : 'border-line text-muted hover:bg-sunken'
                     )}
-                    title={m.canDirect ? 'Quitar permiso de director' : 'Habilitar como director'}
+                    title={m.canDirect ? 'Quitar rol principal de director' : 'Habilitar como director oficial'}
                   >
                     {m.canDirect ? 'Es Director' : 'Habilitar director'}
                   </button>
+                  <IconButton
+                    icon={PenLine}
+                    label={`Editar a ${m.name}`}
+                    onClick={() => startEditing(m)}
+                  />
                   <IconButton
                     icon={Trash2}
                     label={`Eliminar a ${m.name}`}

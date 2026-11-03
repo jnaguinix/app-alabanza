@@ -32,25 +32,35 @@ export const INITIAL_USERS = [
 
 export const normalizeEmail = (email) => (email || '').trim().toLowerCase();
 
+const roleCache = new Map();
+
 /**
  * Obtiene el rol asignado a un correo.
- * Si no está aún persistido en Firestore, recurre a la lista inicial precargada.
+ * Utiliza caché en memoria para no repetir lecturas innecesarias en cada render.
  */
-export async function getUserRole(rawEmail) {
+export async function getUserRole(rawEmail, force = false) {
   const email = normalizeEmail(rawEmail);
   if (!email) return null;
+
+  if (!force && roleCache.has(email)) {
+    return roleCache.get(email);
+  }
 
   try {
     const userDoc = await getDoc(doc(db, 'usuarios', email));
     if (userDoc.exists()) {
-      return userDoc.data().role || 'viewer';
+      const r = userDoc.data().role || 'viewer';
+      roleCache.set(email, r);
+      return r;
     }
   } catch (err) {
     console.warn('Error leyendo rol de Firestore, verificando semilla:', err);
   }
 
   const fallback = INITIAL_USERS.find((u) => u.email === email);
-  return fallback ? fallback.role : null;
+  const finalRole = fallback ? fallback.role : null;
+  if (finalRole) roleCache.set(email, finalRole);
+  return finalRole;
 }
 
 /**
@@ -103,6 +113,7 @@ export async function setUserRole(rawEmail, role, updatedBy = 'admin') {
       updatedBy: normalizeEmail(updatedBy),
     };
     await setDoc(doc(db, 'usuarios', email), payload);
+    roleCache.set(email, role);
     return payload;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `usuarios/${email}`);
@@ -120,15 +131,24 @@ export async function removeUser(rawEmail) {
 
   try {
     await deleteDoc(doc(db, 'usuarios', email));
+    roleCache.delete(email);
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `usuarios/${email}`);
   }
 }
 
 /**
- * Inicializa en Firestore los usuarios iniciales que aún no tengan documento.
+ * Inicializa en Firestore los usuarios iniciales solo si no se ha realizado antes.
+ * Evita múltiples lecturas en cada inicio de sesión.
  */
 export async function seedInitialUsers() {
+  const SEED_KEY = 'alabanzapp:users_seeded_v1';
+  try {
+    if (localStorage.getItem(SEED_KEY)) return;
+  } catch {
+    // ignorar error de localStorage
+  }
+
   try {
     for (const user of INITIAL_USERS) {
       const snap = await getDoc(doc(db, 'usuarios', user.email));
@@ -141,6 +161,9 @@ export async function seedInitialUsers() {
         });
       }
     }
+    try {
+      localStorage.setItem(SEED_KEY, 'true');
+    } catch {}
   } catch (err) {
     console.warn('Nota: Semilla de usuarios ya activa o restringida:', err);
   }

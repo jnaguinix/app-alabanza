@@ -1,5 +1,5 @@
-import { useEffect, useId } from 'react';
-import { X } from 'lucide-react';
+import { useEffect, useId, useRef, useState, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 export const cx = (...c) => c.filter(Boolean).join(' ');
 
@@ -92,6 +92,135 @@ export function Chip({ active, children, className, ...props }) {
     >
       {children}
     </button>
+  );
+}
+
+export function ScrollableBar({ children, className = '', containerClassName = '', label }) {
+  const ref = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const moved = useRef(false);
+
+  const checkScroll = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 6);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 6);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver(() => checkScroll());
+    observer.observe(el);
+    window.addEventListener('resize', checkScroll);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [checkScroll, children]);
+
+  const scrollBy = (amount) => {
+    ref.current?.scrollBy({ left: amount, behavior: 'smooth' });
+  };
+
+  const handleWheel = (e) => {
+    const el = ref.current;
+    if (!el) return;
+    // En PC la rueda suele ser vertical (deltaY): trasladar a desplazamiento horizontal
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
+      el.scrollLeft += e.deltaY;
+      checkScroll();
+    }
+  };
+
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    isDragging.current = true;
+    moved.current = false;
+    startX.current = e.pageX - (ref.current?.offsetLeft || 0);
+    scrollLeftStart.current = ref.current?.scrollLeft || 0;
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging.current || !ref.current) return;
+    const x = e.pageX - ref.current.offsetLeft;
+    const walk = (x - startX.current) * 1.3;
+    if (Math.abs(walk) > 4) moved.current = true;
+    ref.current.scrollLeft = scrollLeftStart.current - walk;
+    checkScroll();
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+  };
+
+  const handleClickCapture = (e) => {
+    if (moved.current) {
+      e.stopPropagation();
+      e.preventDefault();
+      moved.current = false;
+    }
+  };
+
+  return (
+    <div className={cx('relative group/scroll', containerClassName)}>
+      {/* Botón flecha izquierda para PC / mouse */}
+      <button
+        type="button"
+        aria-label="Desplazar a la izquierda"
+        title="Ver anteriores"
+        tabIndex={-1}
+        onClick={() => scrollBy(-220)}
+        className={cx(
+          'absolute left-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center size-8 rounded-full bg-surface/95 border border-line text-ink shadow-md backdrop-blur transition-all duration-200 hover:bg-sunken hover:scale-105 active:scale-95',
+          canScrollLeft ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        )}
+      >
+        <ChevronLeft size={18} aria-hidden />
+      </button>
+
+      {/* Contenedor desplazable */}
+      <div
+        ref={ref}
+        role="region"
+        aria-label={label || 'Barra de opciones desplazables'}
+        onScroll={checkScroll}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onClickCapture={handleClickCapture}
+        className={cx(
+          'flex gap-2 overflow-x-auto select-none scroll-touch-pc pb-1.5 pt-0.5 cursor-default active:cursor-grabbing',
+          className
+        )}
+      >
+        {children}
+      </div>
+
+      {/* Botón flecha derecha para PC / mouse */}
+      <button
+        type="button"
+        aria-label="Desplazar a la derecha"
+        title="Ver siguientes"
+        tabIndex={-1}
+        onClick={() => scrollBy(220)}
+        className={cx(
+          'absolute right-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center size-8 rounded-full bg-surface/95 border border-line text-ink shadow-md backdrop-blur transition-all duration-200 hover:bg-sunken hover:scale-105 active:scale-95',
+          canScrollRight ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        )}
+      >
+        <ChevronRight size={18} aria-hidden />
+      </button>
+    </div>
   );
 }
 
