@@ -75,3 +75,52 @@ export const formatDirectors = (directors = []) => {
   const last = cleanList[cleanList.length - 1];
   return `${allExceptLast} y ${last}`;
 };
+
+/**
+ * Normaliza un nombre individual corrigiendo errores tipográficos comunes
+ * (ej. "Luchó" con tilde -> "Lucho"), eliminando espacios dobles y capitalizando.
+ */
+export const cleanSingleName = (rawName = '') => {
+  let name = (rawName || '').trim();
+  if (!name) return '';
+
+  const lower = name.toLowerCase();
+  if (lower === 'luchó' || lower === 'lucho') {
+    return 'Lucho';
+  }
+
+  name = name.replace(/\s+/g, ' ');
+
+  if (name === lower) {
+    name = name.charAt(0).toUpperCase() + name.slice(1);
+  }
+
+  return name;
+};
+
+/**
+ * Detecta y separa cadenas compuestas (con '/', 'y', '&', ',')
+ * en una lista de nombres individuales limpios y únicos.
+ */
+export const splitAndCleanNames = (raw = '') => {
+  if (!raw) return [];
+
+  const rawStr = String(raw).trim();
+  if (!rawStr) return [];
+
+  const parts = rawStr
+    .split(/\s*(?:\/|,|&|\by\b)\s*/i)
+    .map((p) => cleanSingleName(p))
+    .filter((p) => Boolean(p) && p.length > 1);
+
+  return [...new Set(parts)];
+};
+
+/**
+ * Determina si una cadena es un nombre compuesto que debe ser descompuesto.
+ */
+export const isCompoundName = (raw = '') => {
+  const parts = splitAndCleanNames(raw);
+  return parts.length > 1;
+};
+

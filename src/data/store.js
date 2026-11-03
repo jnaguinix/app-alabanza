@@ -22,7 +22,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { keyOf, normalize, formatDirectors } from '../lib/format';
+import { keyOf, normalize, formatDirectors, cleanSingleName, splitAndCleanNames } from '../lib/format';
 import { buildSeed, INSTRUMENTS } from './seed';
 
 export const DIRECTOR_ROLE = 'Dirige';
@@ -50,22 +50,22 @@ function applyService(index, docData, sign) {
   const roles = new Map();
   const add = (name, role) => {
     if (!name) return;
-    const key = keyOf(name);
-    const cur = roles.get(key) || { name, roles: [] };
+    const clean = cleanSingleName(name);
+    const key = keyOf(clean);
+    const cur = roles.get(key) || { name: clean, roles: [] };
     cur.roles.push(role);
     roles.set(key, cur);
   };
 
-  // Contabilizar cada director de forma individual en el índice
+  // Contabilizar cada director de forma individual y limpia en el índice
   const directorList = Array.isArray(docData.directors) && docData.directors.length
-    ? docData.directors
-    : (docData.director || '')
-        .split(/\s*(?:\/|,|&|\by\b)\s*/i)
-        .map((d) => d.trim())
-        .filter(Boolean);
+    ? docData.directors.flatMap((d) => splitAndCleanNames(d))
+    : splitAndCleanNames(docData.director || '');
   directorList.forEach((d) => add(d, DIRECTOR_ROLE));
 
-  (docData.band || []).forEach((m) => add(m.person, m.instrument));
+  (docData.band || []).forEach((m) => {
+    splitAndCleanNames(m.person).forEach((p) => add(p, m.instrument));
+  });
 
   roles.forEach(({ name, roles: list }, key) => {
     const entry = index.people[key] || { name, services: 0, roles: {} };
@@ -81,10 +81,13 @@ function applyService(index, docData, sign) {
 
 /** Iguala nombres que solo difieren en tildes, mayúsculas o espacios con los ya existentes. */
 function snapToIndex(index, { director, directors, songs, band }) {
-  const person = (name) => index.people?.[keyOf(name)]?.name || name;
+  const person = (name) => {
+    const clean = cleanSingleName(name);
+    return index.people?.[keyOf(clean)]?.name || clean;
+  };
   const rawList = Array.isArray(directors) && directors.length
-    ? directors
-    : director ? [director] : [];
+    ? directors.flatMap((d) => splitAndCleanNames(d))
+    : splitAndCleanNames(director || '');
   const snappedDirectors = rawList.map((d) => person(d.trim())).filter(Boolean);
   const finalDirector = formatDirectors(snappedDirectors) || person(director || '');
 
@@ -92,7 +95,11 @@ function snapToIndex(index, { director, directors, songs, band }) {
     director: finalDirector,
     directors: snappedDirectors,
     songs: (songs || []).map((s) => ({ ...s, name: index.songs?.[keyOf(s.name)]?.name || s.name })),
-    band: (band || []).map((m) => ({ ...m, person: person(m.person) })),
+    band: (band || []).flatMap((m) => {
+      const split = splitAndCleanNames(m.person);
+      const list = split.length ? split : [m.person];
+      return list.map((p) => ({ ...m, person: person(p) }));
+    }),
   };
 }
 

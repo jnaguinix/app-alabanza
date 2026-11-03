@@ -4,6 +4,8 @@ import { DIRECTOR_ROLE } from './data/store';
 import { auth, loginWithGoogle, logoutUser } from './lib/firebase';
 import { getUserRole, seedInitialUsers } from './data/users';
 import { listTeamMembers } from './data/team';
+import { runDataCleanup } from './data/cleanup';
+import { splitAndCleanNames, cleanSingleName } from './lib/format';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const AppContext = createContext(null);
@@ -116,12 +118,40 @@ export function AppProvider({ children }) {
     }
   }, [user, isAuthorized, refresh, refreshTeamMembers]);
 
+  // Ejecución automática única de normalización de datos heredados
+  useEffect(() => {
+    if (user && canEdit) {
+      const CLEANUP_KEY = 'alabanzapp:cleanup_legacy_names_v1';
+      try {
+        if (!localStorage.getItem(CLEANUP_KEY)) {
+          runDataCleanup()
+            .then((res) => {
+              try {
+                localStorage.setItem(CLEANUP_KEY, 'true');
+              } catch {}
+              if (res.membersSplitOrCleaned > 0 || res.servicesUpdated > 0) {
+                toast(
+                  `Normalización completada: ${res.membersSplitOrCleaned} registros corregidos y ${res.servicesUpdated} servicios actualizados.`
+                );
+                refresh();
+                refreshTeamMembers();
+              }
+            })
+            .catch((err) => {
+              console.warn('Nota en normalización inicial de integrantes:', err);
+            });
+        }
+      } catch {}
+    }
+  }, [user, canEdit, refresh, refreshTeamMembers, toast]);
+
   useEffect(() => {
     applyTheme(theme);
     if (theme !== 'system') return;
     const mq = matchMedia('(prefers-color-scheme: dark)');
     const onChange = () => applyTheme('system');
     mq.addEventListener('change', onChange);
+
     return () => mq.removeEventListener('change', onChange);
   }, [theme]);
 
@@ -188,23 +218,16 @@ export function AppProvider({ children }) {
 
   // Catálogos para autocompletar y selección oficial
   const catalogs = useMemo(() => {
-    // Desglosar cadenas compuestas como "Camilo / Kathe", "Camilo y Hanny", etc.
-    const splitNames = (str) => {
-      if (!str) return [];
-      return String(str)
-        .split(/\s*(?:\/|,|&|\by\b)\s*/i)
-        .map((s) => s.trim())
-        .filter(Boolean);
-    };
-
-    const teamPeople = teamMembers.map((m) => m.name);
+    const teamPeople = teamMembers.map((m) => cleanSingleName(m.name));
     const indexPeopleRaw = (index.people || []).map((p) => p.name);
-    const allPeople = [...new Set([...teamPeople, ...indexPeopleRaw.flatMap(splitNames)])].sort((a, b) => a.localeCompare(b));
+    const allPeople = [...new Set([...teamPeople, ...indexPeopleRaw.flatMap(splitAndCleanNames)])].sort((a, b) =>
+      a.localeCompare(b)
+    );
 
-    const teamDirectors = teamMembers.filter((m) => m.canDirect).map((m) => m.name);
+    const teamDirectors = teamMembers.filter((m) => m.canDirect).map((m) => cleanSingleName(m.name));
     const indexDirectorsRaw = (index.people || []).filter((p) => p.roles?.[DIRECTOR_ROLE]).map((p) => p.name);
-    // Unir directores oficiales y personas individuales que han dirigido en el historial
-    const historicalDirectors = [...new Set(indexDirectorsRaw.flatMap(splitNames))];
+    // Unir directores oficiales y personas individuales que han dirigido en el historial (limpias y desglosadas)
+    const historicalDirectors = [...new Set(indexDirectorsRaw.flatMap(splitAndCleanNames))];
     const allDirectors = [...new Set([...teamDirectors, ...historicalDirectors])].sort((a, b) => a.localeCompare(b));
 
     return {
@@ -297,6 +320,12 @@ export function AppProvider({ children }) {
         }
         await store.clearAll();
         await refresh();
+      },
+      runCleanup: async () => {
+        const res = await runDataCleanup();
+        await refresh();
+        await refreshTeamMembers();
+        return res;
       },
     }),
     [

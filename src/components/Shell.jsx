@@ -23,6 +23,7 @@ import {
   UserCheck,
   UserPlus,
   Users,
+  Wand2,
   X,
 } from 'lucide-react';
 import { useApp } from '../app-context';
@@ -30,7 +31,8 @@ import { exportServices, previewImport } from '../data/store';
 import { parseServices } from '../data/importer';
 import { listUsers, removeUser, ROLES, setUserRole } from '../data/users';
 import { batchSaveTeamMembers, deleteTeamMember, listTeamMembers, saveTeamMember } from '../data/team';
-import { keyOf, plural, todayISO } from '../lib/format';
+import { runDataCleanup } from '../data/cleanup';
+import { isCompoundName, keyOf, plural, todayISO } from '../lib/format';
 import { Button, ConfirmDialog, IconButton, Sheet, cx } from './ui';
 
 const TABS = [
@@ -290,8 +292,9 @@ function TeamDirectorySheet({ open, onClose }) {
     }
   }, [editingMember]);
 
-  // Sincronización y borrado
+  // Sincronización, depuración y borrado
   const [syncingAll, setSyncingAll] = useState(false);
+  const [cleaningData, setCleaningData] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState(null);
 
   const loadData = async () => {
@@ -303,6 +306,23 @@ function TeamDirectorySheet({ open, onClose }) {
       toast('Error al cargar integrantes.', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCleanupData = async () => {
+    setCleaningData(true);
+    try {
+      const res = await runDataCleanup();
+      toast(
+        `Normalización completada: ${res.membersSplitOrCleaned} registros corregidos y ${res.servicesUpdated} servicios actualizados.`
+      );
+      await loadData();
+      await refreshTeamMembers();
+      await refresh();
+    } catch (err) {
+      toast(err.message || 'Error al depurar registros heredados.', 'error');
+    } finally {
+      setCleaningData(false);
     }
   };
 
@@ -320,7 +340,7 @@ function TeamDirectorySheet({ open, onClose }) {
     if (!index?.people || !index.people.length) return [];
     const existingKeys = new Set(members.map((m) => keyOf(m.name)));
     return index.people
-      .filter((p) => p.name && !existingKeys.has(keyOf(p.name)))
+      .filter((p) => p.name && !isCompoundName(p.name) && !existingKeys.has(keyOf(p.name)))
       .map((p) => {
         const roles = Object.keys(p.roles || {});
         const canDirect = Boolean(p.roles?.['Dirige'] > 0);
@@ -565,7 +585,7 @@ function TeamDirectorySheet({ open, onClose }) {
         {/* Formulario nuevo integrante (Colapsable) */}
         <div className="mb-4">
           {!showAddForm ? (
-            <div className="flex justify-between items-center gap-2">
+            <div className="flex items-center gap-2">
               <Button
                 variant="secondary"
                 icon={Plus}
@@ -573,9 +593,19 @@ function TeamDirectorySheet({ open, onClose }) {
                   setEditingMember(null);
                   setShowAddForm(true);
                 }}
-                className="w-full text-xs py-2"
+                className="flex-1 text-xs py-2"
               >
                 Añadir nuevo integrante
+              </Button>
+              <Button
+                variant="ghost"
+                icon={Wand2}
+                disabled={cleaningData}
+                onClick={handleCleanupData}
+                className="shrink-0 text-xs py-2 px-3 border border-line hover:border-brand-yellow/60 hover:text-brand-yellow"
+                title="Normaliza nombres con tildes (ej. Lucho) y separa nombres combinados en personas individuales"
+              >
+                {cleaningData ? 'Depurando…' : 'Depurar nombres'}
               </Button>
             </div>
           ) : (

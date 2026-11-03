@@ -1,6 +1,6 @@
 import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { keyOf } from '../lib/format';
+import { keyOf, cleanSingleName, splitAndCleanNames } from '../lib/format';
 
 export const DEFAULT_MEMBERS = [
   { name: 'Camilo', canDirect: true, instruments: ['Voz', 'Guitarra acústica'] },
@@ -87,17 +87,46 @@ export async function listTeamMembers(force = false) {
 
 /**
  * Guarda o actualiza un integrante en el directorio.
+ * Descompone automáticamente entradas compuestas y normaliza nombres erróneos (ej. Luchó -> Lucho).
  */
 export async function saveTeamMember({ id, name, canDirect = true, instruments = ['Voz'], active = true }) {
-  const memberName = name.trim();
+  const memberName = (name || '').trim();
   if (!memberName) {
     throw new Error('Escribe el nombre del integrante.');
   }
 
-  const memberId = id || keyOf(memberName);
+  const individualNames = splitAndCleanNames(memberName);
+  if (individualNames.length > 1) {
+    // Si el usuario intentó guardar un nombre compuesto ("Camilo / Kathe"), guardamos cada individuo
+    const saved = [];
+    for (const singleName of individualNames) {
+      const singleId = keyOf(singleName);
+      const payload = {
+        id: singleId,
+        name: singleName,
+        canDirect: Boolean(canDirect),
+        instruments: Array.isArray(instruments) && instruments.length ? instruments : ['Voz'],
+        active: Boolean(active),
+        updatedAt: Date.now(),
+      };
+      await setDoc(doc(db, 'integrantes', singleId), payload, { merge: true });
+      saved.push(payload);
+    }
+    // Si existía un id anterior compuesto (ej. "camilo-kathe"), eliminar el doc obsoleto
+    if (id && !individualNames.some((n) => keyOf(n) === id)) {
+      try {
+        await deleteDoc(doc(db, 'integrantes', id));
+      } catch {}
+    }
+    invalidateTeamCache();
+    return saved[0];
+  }
+
+  const cleanName = individualNames[0] || cleanSingleName(memberName);
+  const memberId = id && id !== keyOf(memberName) ? id : keyOf(cleanName);
   const payload = {
     id: memberId,
-    name: memberName,
+    name: cleanName,
     canDirect: Boolean(canDirect),
     instruments: Array.isArray(instruments) && instruments.length ? instruments : ['Voz'],
     active: Boolean(active),
@@ -106,6 +135,12 @@ export async function saveTeamMember({ id, name, canDirect = true, instruments =
 
   try {
     await setDoc(doc(db, 'integrantes', memberId), payload);
+    // Si el ID cambió (ej. de un ID obsoleto a uno limpio), eliminar el documento viejo
+    if (id && id !== memberId) {
+      try {
+        await deleteDoc(doc(db, 'integrantes', id));
+      } catch {}
+    }
     invalidateTeamCache();
     return payload;
   } catch (error) {
@@ -139,17 +174,23 @@ export async function batchSaveTeamMembers(members) {
     for (const m of chunk) {
       const memberName = (m.name || '').trim();
       if (!memberName) continue;
-      const memberId = m.id || keyOf(memberName);
-      const payload = {
-        id: memberId,
-        name: memberName,
-        canDirect: Boolean(m.canDirect),
-        instruments: Array.isArray(m.instruments) && m.instruments.length ? m.instruments : ['Voz'],
-        active: m.active !== false,
-        updatedAt: Date.now(),
-      };
-      batch.set(doc(db, 'integrantes', memberId), payload);
-      saved.push(payload);
+
+      const individualNames = splitAndCleanNames(memberName);
+      const namesToSave = individualNames.length ? individualNames : [cleanSingleName(memberName)];
+
+      for (const singleName of namesToSave) {
+        const memberId = keyOf(singleName);
+        const payload = {
+          id: memberId,
+          name: singleName,
+          canDirect: Boolean(m.canDirect),
+          instruments: Array.isArray(m.instruments) && m.instruments.length ? m.instruments : ['Voz'],
+          active: m.active !== false,
+          updatedAt: Date.now(),
+        };
+        batch.set(doc(db, 'integrantes', memberId), payload, { merge: true });
+        saved.push(payload);
+      }
     }
     await batch.commit();
   }
