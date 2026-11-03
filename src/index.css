@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-good: var(--good);
+
+  /* Colores del logo: el azul es la base; rojo y amarillo van como toques. */
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-red: var(--brand-red);
+  --color-brand-yellow: var(--brand-yellow);
+}
+
+:root {
+  --bg: #f3f5fa;
+  --surface: #ffffff;
+  --sunken: #e9edf6;
+  --ink: #0f1b3d;
+  --muted: #55607f;
+  --line: #d9dfec;
+  --accent: #fac20e;
+  --accent-ink: #0f1b3d;
+  --accent-soft: #fff1bd;
+  --danger: #b80e0a;
+  --good: #1f7a5a;
+
+  --brand-blue: #213e91;
+  --brand-red: #b80e0a;
+  --brand-yellow: #fac20e;
+}
+
+.dark {
+  --bg: #0b1226;
+  --surface: #131d3a;
+  --sunken: #0e1630;
+  --ink: #eef2fc;
+  --muted: #a2aecb;
+  --line: #25335c;
+  --accent: #fac20e;
+  --accent-ink: #0f1b3d;
+  --accent-soft: #3b3417;
+  --danger: #ff7a72;
+  --good: #5fd1a3;
+
+  --brand-blue: #8aa4ee;
+  --brand-red: #ff7a72;
+  --brand-yellow: #fac20e;
+}
+
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@keyframes sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes toast-in { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

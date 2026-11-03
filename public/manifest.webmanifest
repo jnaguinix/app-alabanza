@@ -1,0 +1,10 @@
+{
+  "name": "AlabanzApp",
+  "short_name": "AlabanzApp",
+  "description": "Servicios de alabanza: registro, historial y reportes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B1226",
+  "theme_color": "#0B1226",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

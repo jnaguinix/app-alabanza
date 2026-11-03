@@ -1,6 +1,8 @@
-config.js
 node_modules/
-package-lock.json
-
-supabase.txt.env 
+dist/
 .env
+.env.*
+!.env.example
+config.js
+package-lock.json
+supabase.txt
