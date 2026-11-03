@@ -52,10 +52,11 @@ service cloud.firestore {
 
     function isValidService(data) {
       return data.keys().hasAll(['id', 'fecha', 'director', 'songs', 'songKeys', 'band', 'updatedAt', 'deleted']) &&
-        data.keys().hasOnly(['id', 'fecha', 'director', 'songs', 'songKeys', 'band', 'updatedAt', 'deleted']) &&
+        data.keys().hasOnly(['id', 'fecha', 'director', 'directors', 'songs', 'songKeys', 'band', 'updatedAt', 'deleted']) &&
         data.id is string && data.id.size() <= 64 &&
         data.fecha is string && data.fecha.size() <= 64 &&
-        data.director is string && data.director.size() <= 128 &&
+        data.director is string && data.director.size() <= 200 &&
+        (!('directors' in data.keys()) || (data.directors is list && data.directors.size() <= 10)) &&
         data.songs is list && data.songs.size() <= 60 &&
         data.songKeys is list && data.songKeys.size() <= 60 &&
         data.band is list && data.band.size() <= 60 &&
@@ -71,16 +72,32 @@ service cloud.firestore {
         (data.updatedAt is int || data.updatedAt is float || data.updatedAt is timestamp);
     }
 
+    function isValidTeamMember(data) {
+      return data.keys().hasAll(['id', 'name', 'canDirect', 'active']) &&
+        data.keys().hasOnly(['id', 'name', 'canDirect', 'instruments', 'active', 'updatedAt']) &&
+        data.id is string && data.id.size() <= 64 &&
+        data.name is string && data.name.size() <= 128 &&
+        data.canDirect is bool &&
+        data.active is bool;
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Gestion de roles de usuarios
+    // Gestion de roles de usuarios (cuentas de acceso)
     match /usuarios/{email} {
       allow read: if isSignedIn() && (isAdmin() || userEmail() == email.lower());
       allow create, update: if isAdmin() && isValidUserRole(request.resource.data) && request.resource.data.email == email.lower();
       allow delete: if isAdmin() && email.lower() != 'jnaguinix@gmail.com';
+    }
+
+    // Directorio oficial de integrantes del equipo
+    match /integrantes/{id} {
+      allow read: if hasAccess();
+      allow create, update: if isEditor() && isValidTeamMember(request.resource.data) && request.resource.data.id == id;
+      allow delete: if isAdmin();
     }
 
     // Servicios de alabanza

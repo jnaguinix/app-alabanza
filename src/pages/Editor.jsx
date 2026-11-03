@@ -1,14 +1,39 @@
-import { useEffect, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, History, Info, LogIn, Plus, Save, Trash2 } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, History, Info, LogIn, Plus, Save, Trash2, X } from 'lucide-react';
 import { useApp } from '../app-context';
 import { Band, Setlist } from '../components/Setlist';
 import { Button, Field, IconButton, PageHeader, cx, inputClass } from '../components/ui';
 import { getService } from '../data/store';
-import { ago, dayParts, daysBetween, keyOf, longDate, plural, todayISO } from '../lib/format';
+import { ago, dayParts, daysBetween, formatDirectors, keyOf, longDate, plural, todayISO } from '../lib/format';
 
 const uid = () => crypto.randomUUID();
 const blankSong = () => ({ key: uid(), name: '', artist: '' });
 const blankMember = () => ({ key: uid(), instrument: '', person: '' });
+
+const DEFAULT_INSTRUMENTS = [
+  'Voz',
+  'Voz principal',
+  'Coros',
+  'Piano',
+  'Teclado',
+  'Sintetizador',
+  'Guitarra acústica',
+  'Guitarra eléctrica',
+  'Bajo',
+  'Batería',
+  'Percusión',
+  'Saxofón',
+  'Violín',
+  'Dirección',
+];
+
+const extractDirectors = (s) => {
+  if (!s) return [];
+  if (Array.isArray(s.directors) && s.directors.length) return s.directors;
+  if (!s.director) return [];
+  const parts = s.director.split(/\s*(?:\/|\by\b|\be\b)\s*/i).map((x) => x.trim()).filter(Boolean);
+  return parts.length ? parts : [s.director.trim()];
+};
 
 const STEPS = ['Datos', 'Canciones', 'Músicos', 'Resumen'];
 
@@ -73,7 +98,8 @@ const clean = (songs, band) => ({
   songs: songs.filter((s) => s.name.trim()).map((s) => ({ name: s.name.trim(), artist: s.artist.trim() || 'Desconocido' })),
   band: band.filter((m) => m.instrument.trim() && m.person.trim()).map((m) => ({ instrument: m.instrument.trim(), person: m.person.trim() })),
 });
-const snapshot = (director, songs, band) => JSON.stringify({ director: director.trim(), ...clean(songs, band) });
+const snapshot = (directors, songs, band) =>
+  JSON.stringify({ directors: [...directors].sort(), ...clean(songs, band) });
 
 /** Cuándo se cantó por última vez la canción antes de este servicio (lee el índice, no los servicios). */
 function RepeatHint({ name, fecha, songByKey }) {
@@ -105,7 +131,7 @@ export default function Editor() {
   const [step, setStep] = useState(0);
   const [maxStep, setMaxStep] = useState(0);
   const [fecha, setFecha] = useState(editDate || todayISO());
-  const [director, setDirector] = useState('');
+  const [directors, setDirectors] = useState([]);
   const [songs, setSongs] = useState([blankSong()]);
   const [band, setBand] = useState([]);
   const [exists, setExists] = useState(false);
@@ -120,12 +146,13 @@ export default function Editor() {
       if (cancelled) return;
       const loadedSongs = s?.songs.length ? s.songs.map((x) => ({ ...x, key: uid() })) : [blankSong()];
       const loadedBand = s ? s.band.map((m) => ({ ...m, key: uid() })) : [];
+      const loadedDirectors = extractDirectors(s);
       setErrors({});
       setExists(!!s);
-      setDirector(s?.director || '');
+      setDirectors(loadedDirectors);
       setSongs(loadedSongs);
       setBand(loadedBand);
-      setBaseline(snapshot(s?.director || '', loadedSongs, loadedBand));
+      setBaseline(snapshot(loadedDirectors, loadedSongs, loadedBand));
       if (s) setMaxStep(STEPS.length - 1);
     });
     return () => {
@@ -133,7 +160,7 @@ export default function Editor() {
     };
   }, [fecha]);
 
-  const dirty = baseline !== null && snapshot(director, songs, band) !== baseline;
+  const dirty = baseline !== null && snapshot(directors, songs, band) !== baseline;
 
   useEffect(() => {
     setDirty(dirty);
@@ -147,11 +174,42 @@ export default function Editor() {
 
   const { songs: cleanSongs, band: cleanBand } = clean(songs, band);
 
+  const availableDirectors = useMemo(
+    () => catalogs.directors.filter((d) => !directors.includes(d)),
+    [catalogs.directors, directors]
+  );
+
+  const otherTeamMembers = useMemo(
+    () => catalogs.people.filter((p) => !catalogs.directors.includes(p) && !directors.includes(p)),
+    [catalogs.people, catalogs.directors, directors]
+  );
+
+  const availableInstruments = useMemo(() => {
+    const list = [...new Set([...DEFAULT_INSTRUMENTS, ...(catalogs.instruments || [])])];
+    return list;
+  }, [catalogs.instruments]);
+
+  const addDirector = (name) => {
+    if (!name) return;
+    if (!directors.includes(name)) {
+      setDirectors((curr) => [...curr, name]);
+      setErrors((errs) => {
+        const next = { ...errs };
+        delete next.directors;
+        return next;
+      });
+    }
+  };
+
+  const removeDirector = (name) => {
+    setDirectors((curr) => curr.filter((d) => d !== name));
+  };
+
   const validate = (n) => {
     const next = {};
     if (n === 0) {
       if (!fecha) next.fecha = 'Elige la fecha del servicio.';
-      if (!director.trim()) next.director = 'Escribe quién dirige.';
+      if (!directors.length) next.directors = 'Selecciona al menos un director del equipo.';
     }
     if (n === 1 && !cleanSongs.length) next.songs = 'Añade al menos una canción.';
     setErrors(next);
@@ -191,7 +249,13 @@ export default function Editor() {
     }
     setSaving(true);
     try {
-      await save({ fecha, director: director.trim(), songs: cleanSongs, band: cleanBand });
+      await save({
+        fecha,
+        director: formatDirectors(directors),
+        directors,
+        songs: cleanSongs,
+        band: cleanBand,
+      });
       toast(exists ? 'Cambios guardados' : 'Servicio guardado');
       navigate('inicio', null, { force: true });
     } catch (err) {
@@ -230,20 +294,83 @@ export default function Editor() {
         {step === 0 && (
           <Card title="¿Cuándo y quién dirige?">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} error={errors.fecha} hint={fecha ? longDate(fecha) : undefined} />
-              <Field label="Director" error={errors.director}>
-                {(id) => (
-                  <input
-                    id={id}
-                    list="people-list"
-                    value={director}
-                    onChange={(e) => setDirector(e.target.value)}
-                    placeholder="Ej. Laura Torres"
-                    className={cx(inputClass, errors.director && 'border-danger')}
-                  />
+              <Field
+                label="Fecha"
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                error={errors.fecha}
+                hint={fecha ? longDate(fecha) : undefined}
+              />
+
+              <Field label="Director(es) de alabanza" error={errors.directors}>
+                {() => (
+                  <div className="space-y-2.5">
+                    {directors.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {directors.map((name) => (
+                          <span
+                            key={name}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-brand-blue/30 bg-brand-blue/10 px-3 py-1 text-sm font-semibold text-ink"
+                          >
+                            <span>{name}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeDirector(name)}
+                              className="rounded-full p-0.5 text-muted hover:bg-black/10 hover:text-ink transition"
+                              aria-label={`Quitar a ${name}`}
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            addDirector(e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                        className={cx(inputClass, errors.directors && 'border-danger')}
+                        aria-label="Añadir director del equipo oficial"
+                      >
+                        <option value="">+ Añadir director del directorio oficial…</option>
+                        {availableDirectors.map((name) => (
+                          <option key={name} value={name}>
+                            {name} (Director oficial)
+                          </option>
+                        ))}
+                        {otherTeamMembers.length > 0 && (
+                          <optgroup label="Otros integrantes del equipo">
+                            {otherTeamMembers.map((name) => (
+                              <option key={name} value={name}>
+                                {name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </select>
+                    </div>
+
+                    {directors.length > 0 ? (
+                      <p className="text-xs text-muted">
+                        Se mostrará como: <strong className="text-ink font-semibold">{formatDirectors(directors)}</strong>
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted">
+                        Selecciona uno o más integrantes del equipo oficial (puedes añadir múltiples con el botón +).
+                      </p>
+                    )}
+                  </div>
                 )}
               </Field>
             </div>
+
             {exists && (
               <p className="mt-4 flex gap-2 rounded-xl bg-accent-soft p-3 text-sm">
                 <Info size={18} className="mt-0.5 shrink-0" aria-hidden />
@@ -294,34 +421,54 @@ export default function Editor() {
         )}
 
         {step === 2 && (
-          <Card title="Músicos y coristas" hint="Quién toca cada instrumento. Puedes omitir este paso.">
+          <Card
+            title="Músicos y coristas"
+            hint="Selecciona quién toca cada instrumento desde el directorio oficial del ministerio. Puedes omitir este paso."
+          >
             <ul className="space-y-3">
-              {band.map((m) => (
+              {band.map((m, idx) => (
                 <li key={m.key} className="flex items-start gap-2">
                   <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-                    <input
-                      list="instruments-list"
-                      aria-label="Instrumento"
+                    <select
+                      aria-label={`Instrumento del músico ${idx + 1}`}
                       value={m.instrument}
                       onChange={(e) => updateMember(m.key, { instrument: e.target.value })}
-                      placeholder="Instrumento"
                       className={inputClass}
-                    />
-                    <input
-                      list="people-list"
-                      aria-label="Persona"
+                    >
+                      <option value="">Selecciona instrumento…</option>
+                      {availableInstruments.map((ins) => (
+                        <option key={ins} value={ins}>
+                          {ins}
+                        </option>
+                      ))}
+                      {m.instrument && !availableInstruments.includes(m.instrument) && (
+                        <option value={m.instrument}>{m.instrument}</option>
+                      )}
+                    </select>
+
+                    <select
+                      aria-label={`Integrante del músico ${idx + 1}`}
                       value={m.person}
                       onChange={(e) => updateMember(m.key, { person: e.target.value })}
-                      placeholder="Persona"
                       className={inputClass}
-                    />
+                    >
+                      <option value="">Selecciona integrante oficial…</option>
+                      {catalogs.people.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                      {m.person && !catalogs.people.includes(m.person) && (
+                        <option value={m.person}>{m.person} (no registrado)</option>
+                      )}
+                    </select>
                   </div>
                   <IconButton icon={Trash2} label="Quitar músico" onClick={() => setBand((l) => l.filter((x) => x.key !== m.key))} />
                 </li>
               ))}
             </ul>
             <Button variant="secondary" icon={Plus} className={band.length ? 'mt-4' : ''} onClick={() => setBand((l) => [...l, blankMember()])}>
-              Añadir músico
+              Añadir integrante
             </Button>
           </Card>
         )}
@@ -333,7 +480,10 @@ export default function Editor() {
               action={<Button variant="ghost" className="-my-1 min-h-9 px-2 text-sm" onClick={() => goTo(0)}>Cambiar</Button>}
             >
               <p className="font-display text-xl font-bold first-letter:uppercase">{longDate(fecha)}</p>
-              <p className="text-muted">Dirige {director.trim()}</p>
+              <p className="text-muted">
+                {directors.length > 1 ? 'Dirigen ' : 'Dirige '}
+                <strong className="text-ink font-semibold">{formatDirectors(directors) || 'Sin director'}</strong>
+              </p>
             </Card>
             <Card
               title={plural(cleanSongs.length, 'canción', 'canciones')}
@@ -374,8 +524,6 @@ export default function Editor() {
         )}
       </div>
 
-      <datalist id="people-list">{catalogs.people.map((p) => <option key={p} value={p} />)}</datalist>
-      <datalist id="instruments-list">{catalogs.instruments.map((p) => <option key={p} value={p} />)}</datalist>
       <datalist id="songs-list">{catalogs.songs.map((s) => <option key={s.name} value={s.name} />)}</datalist>
       <datalist id="artists-list">{catalogs.artists.map((a) => <option key={a} value={a} />)}</datalist>
     </>

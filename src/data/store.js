@@ -22,7 +22,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { keyOf, normalize } from '../lib/format';
+import { keyOf, normalize, formatDirectors } from '../lib/format';
 import { buildSeed, INSTRUMENTS } from './seed';
 
 export const DIRECTOR_ROLE = 'Dirige';
@@ -55,7 +55,15 @@ function applyService(index, docData, sign) {
     cur.roles.push(role);
     roles.set(key, cur);
   };
-  add(docData.director, DIRECTOR_ROLE);
+
+  // Contabilizar cada director de forma individual en el índice
+  const directorList = Array.isArray(docData.directors) && docData.directors.length
+    ? docData.directors
+    : docData.director
+      ? (docData.director.includes(' y ') ? docData.director.split(' y ') : [docData.director])
+      : [];
+  directorList.forEach((d) => add(d.trim(), DIRECTOR_ROLE));
+
   (docData.band || []).forEach((m) => add(m.person, m.instrument));
 
   roles.forEach(({ name, roles: list }, key) => {
@@ -71,25 +79,40 @@ function applyService(index, docData, sign) {
 }
 
 /** Iguala nombres que solo difieren en tildes, mayúsculas o espacios con los ya existentes. */
-function snapToIndex(index, { director, songs, band }) {
+function snapToIndex(index, { director, directors, songs, band }) {
   const person = (name) => index.people?.[keyOf(name)]?.name || name;
+  const rawList = Array.isArray(directors) && directors.length
+    ? directors
+    : director ? [director] : [];
+  const snappedDirectors = rawList.map((d) => person(d.trim())).filter(Boolean);
+  const finalDirector = formatDirectors(snappedDirectors) || person(director || '');
+
   return {
-    director: person(director),
+    director: finalDirector,
+    directors: snappedDirectors,
     songs: (songs || []).map((s) => ({ ...s, name: index.songs?.[keyOf(s.name)]?.name || s.name })),
     band: (band || []).map((m) => ({ ...m, person: person(m.person) })),
   };
 }
 
-const toDoc = ({ fecha, director, songs = [], band = [], updatedAt = Date.now(), deleted = false }) => ({
-  id: fecha,
-  fecha,
-  director: director || '',
-  songs,
-  songKeys: [...new Set(songs.map((s) => keyOf(s.name)))],
-  band,
-  updatedAt,
-  deleted,
-});
+const toDoc = ({ fecha, director, directors, songs = [], band = [], updatedAt = Date.now(), deleted = false }) => {
+  const dList = Array.isArray(directors) && directors.length
+    ? directors
+    : director ? [director] : [];
+  const finalDirector = director || formatDirectors(dList);
+
+  return {
+    id: fecha,
+    fecha,
+    director: finalDirector,
+    directors: dList,
+    songs,
+    songKeys: [...new Set(songs.map((s) => keyOf(s.name)))],
+    band,
+    updatedAt,
+    deleted,
+  };
+};
 
 /* ---------- Servicios (Consultas y Lecturas) ---------- */
 
@@ -164,7 +187,7 @@ export async function getServices(fechas) {
   }
 }
 
-export async function saveService({ fecha, director, songs, band }) {
+export async function saveService({ fecha, director, directors, songs, band }) {
   try {
     const serviceRef = doc(db, 'servicios', fecha);
     const cancionesRef = doc(db, 'indice', 'canciones');
@@ -192,7 +215,7 @@ export async function saveService({ fecha, director, songs, band }) {
         applyService(index, oldDoc, -1);
       }
 
-      const snapped = snapToIndex(index, { director, songs, band });
+      const snapped = snapToIndex(index, { director, directors, songs, band });
       const newDoc = toDoc({ fecha, ...snapped, updatedAt: Date.now(), deleted: false });
       applyService(index, newDoc, 1);
 

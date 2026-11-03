@@ -3,6 +3,7 @@ import * as store from './data/store';
 import { DIRECTOR_ROLE } from './data/store';
 import { auth, loginWithGoogle, logoutUser } from './lib/firebase';
 import { getUserRole, seedInitialUsers } from './data/users';
+import { listTeamMembers } from './data/team';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const AppContext = createContext(null);
@@ -26,6 +27,7 @@ export function AppProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [authLoading, setAuthLoading] = useState(true);
 
   const [theme, setThemeState] = useState(() => {
@@ -83,6 +85,15 @@ export function AppProvider({ children }) {
   const canBackup = isAdmin;
   const isAuthorized = !!role;
 
+  const refreshTeamMembers = useCallback(async () => {
+    try {
+      const list = await listTeamMembers();
+      setTeamMembers(list);
+    } catch (err) {
+      console.warn('Error refrescando integrantes:', err);
+    }
+  }, []);
+
   // Tras escribir solo se vuelve a leer el índice; cada pantalla vuelve a pedir lo suyo al cambiar `version`.
   const refresh = useCallback(async () => {
     try {
@@ -99,10 +110,11 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (user && isAuthorized) {
       refresh();
+      refreshTeamMembers();
     } else {
       setLoading(false);
     }
-  }, [user, isAuthorized, refresh]);
+  }, [user, isAuthorized, refresh, refreshTeamMembers]);
 
   useEffect(() => {
     applyTheme(theme);
@@ -174,18 +186,30 @@ export function AppProvider({ children }) {
   }, [pendingNav, navigate]);
   const cancelLeave = useCallback(() => setPendingNav(null), []);
 
-  // Catálogos para autocompletar y búsquedas por clave
-  const catalogs = useMemo(
-    () => ({
-      people: (index.people || []).map((p) => p.name).sort((a, b) => a.localeCompare(b)),
-      directors: (index.people || []).filter((p) => p.roles?.[DIRECTOR_ROLE]).map((p) => p.name),
-      instruments: index.instruments || [],
+  // Catálogos para autocompletar y selección oficial
+  const catalogs = useMemo(() => {
+    const teamPeople = teamMembers.map((m) => m.name);
+    const indexPeople = (index.people || []).map((p) => p.name);
+    const allPeople = [...new Set([...teamPeople, ...indexPeople])].sort((a, b) => a.localeCompare(b));
+
+    const teamDirectors = teamMembers.filter((m) => m.canDirect).map((m) => m.name);
+    const indexDirectors = (index.people || []).filter((p) => p.roles?.[DIRECTOR_ROLE]).map((p) => p.name);
+    const allDirectors = teamDirectors.length
+      ? teamDirectors
+      : [...new Set(indexDirectors)].sort((a, b) => a.localeCompare(b));
+
+    return {
+      people: allPeople,
+      directors: allDirectors,
+      teamMembers,
+      instruments: index.instruments?.length
+        ? index.instruments
+        : ['Voz', 'Piano', 'Guitarra acústica', 'Guitarra eléctrica', 'Bajo', 'Batería'],
       songs: (index.songs || []).map((s) => ({ name: s.name, artist: s.artist })),
       artists: [...new Set((index.songs || []).map((s) => s.artist))].sort((a, b) => a.localeCompare(b)),
       songByKey: new Map((index.songs || []).map((s) => [s.key, s])),
-    }),
-    [index],
-  );
+    };
+  }, [index, teamMembers]);
 
   const value = useMemo(
     () => ({
@@ -206,6 +230,8 @@ export function AppProvider({ children }) {
       canBackup,
       isAuthorized,
       authLoading,
+      teamMembers,
+      refreshTeamMembers,
       login,
       logout,
       refreshUserRole,
@@ -280,6 +306,8 @@ export function AppProvider({ children }) {
       canBackup,
       isAuthorized,
       authLoading,
+      teamMembers,
+      refreshTeamMembers,
       login,
       logout,
       refreshUserRole,

@@ -62,3 +62,16 @@ export const countBy = (items) => {
 
 /** Clave estable de un nombre: sin tildes, mayúsculas ni signos ("Océanos " -> "oceanos"). */
 export const keyOf = (s = '') => normalize(s).replace(/[^a-z0-9]+/g, '') || normalize(s);
+
+/** Formatea una lista de directores con conjunción natural en español: ['Camilo', 'Kathe'] -> "Camilo y Kathe" */
+export const formatDirectors = (directors = []) => {
+  const cleanList = (Array.isArray(directors) ? directors : [directors])
+    .map((d) => (typeof d === 'string' ? d.trim() : ''))
+    .filter(Boolean);
+  if (!cleanList.length) return '';
+  if (cleanList.length === 1) return cleanList[0];
+  if (cleanList.length === 2) return `${cleanList[0]} y ${cleanList[1]}`;
+  const allExceptLast = cleanList.slice(0, -1).join(', ');
+  const last = cleanList[cleanList.length - 1];
+  return `${allExceptLast} y ${last}`;
+};

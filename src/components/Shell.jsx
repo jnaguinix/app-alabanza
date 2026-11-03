@@ -7,7 +7,9 @@ import {
   LogOut,
   Monitor,
   Moon,
+  Music,
   PenLine,
+  Plus,
   Settings,
   Shield,
   ShieldCheck,
@@ -15,6 +17,7 @@ import {
   Trash2,
   Upload,
   User,
+  UserCheck,
   UserPlus,
   Users,
 } from 'lucide-react';
@@ -22,6 +25,7 @@ import { useApp } from '../app-context';
 import { exportServices, previewImport } from '../data/store';
 import { parseServices } from '../data/importer';
 import { listUsers, removeUser, ROLES, setUserRole } from '../data/users';
+import { deleteTeamMember, listTeamMembers, saveTeamMember } from '../data/team';
 import { plural, todayISO } from '../lib/format';
 import { Button, ConfirmDialog, IconButton, Sheet, cx } from './ui';
 
@@ -237,6 +241,203 @@ function UserManagementSheet({ open, onClose }) {
   );
 }
 
+function TeamDirectorySheet({ open, onClose }) {
+  const { toast, refreshTeamMembers } = useApp();
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [canDirect, setCanDirect] = useState(true);
+  const [instrument, setInstrument] = useState('Voz');
+  const [submitting, setSubmitting] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const list = await listTeamMembers();
+      setMembers(list);
+    } catch {
+      toast('Error al cargar integrantes.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open) loadData();
+  }, [open]);
+
+  const handleAddMember = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return toast('Escribe el nombre del integrante.', 'error');
+    setSubmitting(true);
+    try {
+      await saveTeamMember({
+        name: name.trim(),
+        canDirect,
+        instruments: [instrument],
+      });
+      toast(`Integrante ${name.trim()} guardado en el directorio`);
+      setName('');
+      await loadData();
+      await refreshTeamMembers();
+    } catch (err) {
+      toast(err.message || 'No se pudo guardar el integrante.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleToggleCanDirect = async (member) => {
+    try {
+      await saveTeamMember({
+        ...member,
+        canDirect: !member.canDirect,
+      });
+      toast(`Rol de director actualizado para ${member.name}`);
+      await loadData();
+      await refreshTeamMembers();
+    } catch {
+      toast('Error al actualizar integrante.', 'error');
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!memberToDelete) return;
+    try {
+      await deleteTeamMember(memberToDelete.id);
+      toast(`Integrante ${memberToDelete.name} eliminado del directorio`);
+      setMemberToDelete(null);
+      await loadData();
+      await refreshTeamMembers();
+    } catch (err) {
+      toast(err.message || 'No se pudo eliminar el integrante.', 'error');
+    }
+  };
+
+  const instrumentOptions = ['Voz', 'Piano', 'Guitarra acústica', 'Guitarra eléctrica', 'Bajo', 'Batería'];
+
+  return (
+    <>
+      <Sheet open={open && !memberToDelete} onClose={onClose} title="Directorio del Equipo">
+        <p className="mb-4 text-xs text-muted">
+          Lista oficial de personas disponibles para dirigir o tocar en los servicios.
+        </p>
+
+        {/* Formulario nuevo integrante */}
+        <form onSubmit={handleAddMember} className="mb-6 rounded-2xl border border-line bg-sunken/60 p-3.5">
+          <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-muted">Añadir integrante oficial</h4>
+          <div className="space-y-2.5">
+            <div>
+              <label htmlFor="member-name-input" className="sr-only">Nombre y apellido</label>
+              <input
+                id="member-name-input"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Nombre del integrante (ej. Laura Torres)"
+                className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/60 focus:border-brand-blue"
+              />
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <select
+                value={instrument}
+                onChange={(e) => setInstrument(e.target.value)}
+                className="flex-1 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand-blue"
+              >
+                {instrumentOptions.map((ins) => (
+                  <option key={ins} value={ins}>{ins}</option>
+                ))}
+              </select>
+
+              <label className="flex items-center gap-2 px-2 py-1.5 text-xs font-semibold text-ink cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={canDirect}
+                  onChange={(e) => setCanDirect(e.target.checked)}
+                  className="size-4 rounded border-line text-brand-blue"
+                />
+                <span>Puede dirigir</span>
+              </label>
+
+              <Button type="submit" variant="primary" icon={Plus} disabled={submitting} className="shrink-0 text-xs">
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </form>
+
+        {/* Lista de integrantes */}
+        <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
+          Integrantes oficiales ({members.length})
+        </h4>
+
+        {loading ? (
+          <div className="py-8 text-center text-sm text-muted">Cargando integrantes…</div>
+        ) : (
+          <div className="space-y-2">
+            {members.map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface p-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-semibold text-ink">{m.name}</p>
+                    {m.canDirect && (
+                      <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-ink">
+                        Dirige
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap gap-1 text-[11px] text-muted">
+                    {(m.instruments || []).map((ins) => (
+                      <span key={ins} className="rounded bg-sunken px-1.5 py-0.5">
+                        {ins}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCanDirect(m)}
+                    className={cx(
+                      'rounded-lg px-2 py-1 text-[11px] font-semibold border transition',
+                      m.canDirect
+                        ? 'border-accent bg-accent/15 text-ink'
+                        : 'border-line text-muted hover:bg-sunken',
+                    )}
+                    title={m.canDirect ? 'Quitar permiso de director' : 'Habilitar como director'}
+                  >
+                    {m.canDirect ? 'Es Director' : 'Habilitar director'}
+                  </button>
+                  <IconButton
+                    icon={Trash2}
+                    label={`Eliminar a ${m.name}`}
+                    onClick={() => setMemberToDelete(m)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Sheet>
+
+      <ConfirmDialog
+        open={!!memberToDelete}
+        title="¿Eliminar integrante del directorio?"
+        message={`Se eliminará a ${memberToDelete?.name} del directorio oficial.`}
+        confirmLabel="Eliminar integrante"
+        tone="danger"
+        onCancel={() => setMemberToDelete(null)}
+        onConfirm={confirmDelete}
+      />
+    </>
+  );
+}
+
 function SettingsSheet({ open, onClose }) {
   const {
     theme,
@@ -248,12 +449,14 @@ function SettingsSheet({ open, onClose }) {
     user,
     role,
     isAdmin,
+    canEdit,
     canBackup,
     logout,
   } = useApp();
   const [confirm, setConfirm] = useState(null);
   const [pendingImport, setPendingImport] = useState(null);
   const [usersSheetOpen, setUsersSheetOpen] = useState(false);
+  const [teamSheetOpen, setTeamSheetOpen] = useState(false);
   const fileRef = useRef(null);
 
   const handleExport = async () => {
@@ -313,7 +516,7 @@ function SettingsSheet({ open, onClose }) {
 
   return (
     <>
-      <Sheet open={open && !confirm && !pendingImport && !usersSheetOpen} onClose={onClose} title="Ajustes">
+      <Sheet open={open && !confirm && !pendingImport && !usersSheetOpen && !teamSheetOpen} onClose={onClose} title="Ajustes">
         {/* Perfil del usuario actual */}
         <h3 className="mt-2 mb-2 text-sm font-semibold">Tu cuenta</h3>
         <div className="rounded-2xl border border-line bg-sunken/60 p-3.5">
@@ -344,6 +547,31 @@ function SettingsSheet({ open, onClose }) {
             </Button>
           </div>
         </div>
+
+        {/* Directorio de Integrantes y Directores (Admins y Gestores de canciones) */}
+        {canEdit && (
+          <>
+            <h3 className="mt-6 mb-2 text-sm font-semibold">Integrantes y Directores</h3>
+            <div className="rounded-2xl border border-line bg-surface p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-semibold text-ink">Directorio del Equipo</p>
+                  <p className="text-xs text-muted">
+                    Lista oficial de directores, vocalistas e instrumentistas para armar los servicios.
+                  </p>
+                </div>
+                <Button
+                  variant="primary"
+                  icon={Users}
+                  onClick={() => setTeamSheetOpen(true)}
+                  className="shrink-0 text-xs"
+                >
+                  Directorio
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Gestor de Usuarios (Solo Admin) */}
         {isAdmin && (
@@ -425,6 +653,7 @@ function SettingsSheet({ open, onClose }) {
         )}
       </Sheet>
 
+      <TeamDirectorySheet open={teamSheetOpen} onClose={() => setTeamSheetOpen(false)} />
       <UserManagementSheet open={usersSheetOpen} onClose={() => setUsersSheetOpen(false)} />
 
       <ConfirmDialog

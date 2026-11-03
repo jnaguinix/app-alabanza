@@ -8,6 +8,7 @@
         "id": { "type": "string", "description": "Fecha en formato YYYY-MM-DD" },
         "fecha": { "type": "string", "description": "Fecha del servicio YYYY-MM-DD" },
         "director": { "type": "string", "description": "Nombre de la persona que dirige la alabanza" },
+        "directors": { "type": "array", "description": "Lista de nombres de directores del servicio" },
         "songs": { "type": "array", "description": "Lista de canciones del servicio con name y artist" },
         "songKeys": { "type": "array", "description": "Claves normalizadas de las canciones para consultas rapidas" },
         "band": { "type": "array", "description": "Lista de integrantes de la banda con instrument y person" },
@@ -52,6 +53,19 @@
         "updatedBy": { "type": "string", "description": "Correo del administrador que asigno el rol" }
       },
       "required": ["email", "role", "updatedAt"]
+    },
+    "TeamMember": {
+      "title": "TeamMember",
+      "description": "Miembro oficial del ministerio de alabanza",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Identificador normalizado del miembro" },
+        "name": { "type": "string", "description": "Nombre y apellido oficial del integrante" },
+        "canDirect": { "type": "boolean", "description": "Indica si suele dirigir servicios de alabanza" },
+        "instruments": { "type": "array", "description": "Instrumentos o roles que interpreta habitualmente" },
+        "active": { "type": "boolean", "description": "Estado activo o inactivo en el equipo" }
+      },
+      "required": ["id", "name", "canDirect", "active"]
     }
   },
   "firestore": {
@@ -74,6 +88,10 @@
     "/usuarios/{email}": {
       "schema": "UserRole",
       "description": "Coleccion de roles de usuario por correo"
+    },
+    "/integrantes/{id}": {
+      "schema": "TeamMember",
+      "description": "Coleccion oficial de miembros e integrantes del ministerio musical"
     }
   }
 }
