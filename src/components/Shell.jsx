@@ -248,18 +248,11 @@ function UserManagementSheet({ open, onClose }) {
 }
 
 const PRESET_INSTRUMENTS = [
-  'Voz',
-  'Coros',
+  'Corista',
   'Piano',
-  'Teclado',
-  'Sintetizador',
-  'Guitarra acústica',
-  'Guitarra eléctrica',
+  'Guitarra',
   'Bajo',
   'Batería',
-  'Percusión',
-  'Saxofón',
-  'Violín',
 ];
 
 function TeamDirectorySheet({ open, onClose }) {
@@ -273,7 +266,7 @@ function TeamDirectorySheet({ open, onClose }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newCanDirect, setNewCanDirect] = useState(false);
-  const [newInstruments, setNewInstruments] = useState(['Voz']);
+  const [newInstruments, setNewInstruments] = useState(['Corista']);
   const [newCustomInstrument, setNewCustomInstrument] = useState('');
   const [submittingAdd, setSubmittingAdd] = useState(false);
 
@@ -348,7 +341,7 @@ function TeamDirectorySheet({ open, onClose }) {
         return {
           name: p.name,
           canDirect,
-          instruments: instruments.length ? instruments : ['Voz'],
+          instruments: instruments.length ? instruments : ['Corista'],
           servicesCount: p.services || 0,
         };
       });
@@ -364,12 +357,12 @@ function TeamDirectorySheet({ open, onClose }) {
       await saveTeamMember({
         name: cleanName,
         canDirect: newCanDirect,
-        instruments: newInstruments.length ? newInstruments : ['Voz'],
+        instruments: newInstruments.length ? newInstruments : ['Corista'],
       });
       toast(`Integrante ${cleanName} añadido al directorio`);
       setNewName('');
       setNewCanDirect(false);
-      setNewInstruments(['Voz']);
+      setNewInstruments(['Corista']);
       setShowAddForm(false);
       await loadData();
       await refreshTeamMembers();
@@ -386,7 +379,7 @@ function TeamDirectorySheet({ open, onClose }) {
     setEditingMember(member);
     setEditName(member.name);
     setEditCanDirect(Boolean(member.canDirect));
-    setEditInstruments(Array.isArray(member.instruments) && member.instruments.length ? [...member.instruments] : ['Voz']);
+    setEditInstruments(Array.isArray(member.instruments) && member.instruments.length ? [...member.instruments] : ['Corista']);
     setEditCustomInstrument('');
   };
 
@@ -402,7 +395,7 @@ function TeamDirectorySheet({ open, onClose }) {
         id: editingMember.id,
         name: cleanName,
         canDirect: editCanDirect,
-        instruments: editInstruments.length ? editInstruments : ['Voz'],
+        instruments: editInstruments.length ? editInstruments : ['Corista'],
       });
       toast(`Integrante ${cleanName} actualizado`);
       setEditingMember(null);
@@ -484,7 +477,7 @@ function TeamDirectorySheet({ open, onClose }) {
   const toggleInstrumentInList = (list, setList, item) => {
     if (list.includes(item)) {
       if (list.length === 1) {
-        toast('El integrante debe tener al menos un instrumento o rol (ej. Voz).', 'error');
+        toast('El integrante debe tener al menos un rol o instrumento (ej. Corista).', 'error');
         return;
       }
       setList(list.filter((x) => x !== item));
@@ -506,7 +499,7 @@ function TeamDirectorySheet({ open, onClose }) {
   const isDirector = (m) => Boolean(m.canDirect);
   const isMusician = (m) => {
     const ins = (m.instruments || []).map((i) => i.toLowerCase());
-    return ins.some((i) => !['voz', 'coros'].includes(i)) || !m.canDirect;
+    return ins.some((i) => !['corista', 'voz', 'coros', 'coro'].includes(i)) || !m.canDirect;
   };
 
   const directorsCount = useMemo(() => members.filter(isDirector).length, [members]);
@@ -1025,8 +1018,6 @@ function SettingsSheet({ open, onClose }) {
   const {
     theme,
     setTheme,
-    resetSample,
-    clearAll,
     importServices,
     toast,
     user,
@@ -1036,7 +1027,6 @@ function SettingsSheet({ open, onClose }) {
     canBackup,
     logout,
   } = useApp();
-  const [confirm, setConfirm] = useState(null);
   const [pendingImport, setPendingImport] = useState(null);
   const [usersSheetOpen, setUsersSheetOpen] = useState(false);
   const [teamSheetOpen, setTeamSheetOpen] = useState(false);
@@ -1099,7 +1089,7 @@ function SettingsSheet({ open, onClose }) {
 
   return (
     <>
-      <Sheet open={open && !confirm && !pendingImport && !usersSheetOpen && !teamSheetOpen} onClose={onClose} title="Ajustes">
+      <Sheet open={open && !pendingImport && !usersSheetOpen && !teamSheetOpen} onClose={onClose} title="Ajustes">
         {/* Perfil del usuario actual */}
         <h3 className="mt-2 mb-2 text-sm font-semibold">Tu cuenta</h3>
         <div className="rounded-2xl border border-line bg-sunken/60 p-3.5">
@@ -1220,47 +1210,10 @@ function SettingsSheet({ open, onClose }) {
           </>
         )}
 
-        {/* Datos de prueba (EXCLUSIVO ADMIN) */}
-        {isAdmin && (
-          <>
-            <h3 className="mt-6 mb-2 text-sm font-semibold">Gestión de datos</h3>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button variant="secondary" onClick={() => setConfirm('sample')}>
-                Cargar datos de ejemplo
-              </Button>
-              <Button variant="danger" onClick={() => setConfirm('clear')}>
-                Borrar todos los servicios
-              </Button>
-            </div>
-          </>
-        )}
       </Sheet>
 
       <TeamDirectorySheet open={teamSheetOpen} onClose={() => setTeamSheetOpen(false)} />
       <UserManagementSheet open={usersSheetOpen} onClose={() => setUsersSheetOpen(false)} />
-
-      <ConfirmDialog
-        open={!!confirm}
-        title={confirm === 'clear' ? '¿Borrar todos los servicios?' : '¿Cargar datos de ejemplo?'}
-        message={
-          confirm === 'clear'
-            ? 'Se eliminarán todos los servicios guardados en Firestore. No se puede deshacer.'
-            : 'Reemplazará los servicios actuales por 14 servicios de ejemplo en Firestore.'
-        }
-        confirmLabel={confirm === 'clear' ? 'Sí, borrar todo' : 'Sí, reemplazar'}
-        onCancel={() => setConfirm(null)}
-        onConfirm={async () => {
-          try {
-            if (confirm === 'clear') await clearAll();
-            else await resetSample();
-            toast(confirm === 'clear' ? 'Servicios eliminados' : 'Datos de ejemplo cargados');
-            setConfirm(null);
-            onClose();
-          } catch (err) {
-            toast(err.message || 'Error en la operación', 'error');
-          }
-        }}
-      />
       <ConfirmDialog
         open={!!pendingImport}
         title="¿Importar servicios?"

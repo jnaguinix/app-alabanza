@@ -118,10 +118,10 @@ export function AppProvider({ children }) {
     }
   }, [user, isAuthorized, refresh, refreshTeamMembers]);
 
-  // Ejecución automática única de normalización de datos heredados
+  // Ejecución automática única de normalización de datos heredados e instrumentos
   useEffect(() => {
     if (user && canEdit) {
-      const CLEANUP_KEY = 'alabanzapp:cleanup_legacy_names_v1';
+      const CLEANUP_KEY = 'alabanzapp:cleanup_legacy_names_and_instruments_v2';
       try {
         if (!localStorage.getItem(CLEANUP_KEY)) {
           runDataCleanup()
@@ -129,16 +129,16 @@ export function AppProvider({ children }) {
               try {
                 localStorage.setItem(CLEANUP_KEY, 'true');
               } catch {}
-              if (res.membersSplitOrCleaned > 0 || res.servicesUpdated > 0) {
+              if (res.membersSplitOrCleaned > 0 || res.servicesUpdated > 0 || res.membersCreatedOrUpdated > 0) {
                 toast(
-                  `Normalización completada: ${res.membersSplitOrCleaned} registros corregidos y ${res.servicesUpdated} servicios actualizados.`
+                  `Normalización completada: integrantes y servicios unificados con los instrumentos oficiales.`
                 );
                 refresh();
                 refreshTeamMembers();
               }
             })
             .catch((err) => {
-              console.warn('Nota en normalización inicial de integrantes:', err);
+              console.warn('Nota en normalización inicial de integrantes e instrumentos:', err);
             });
         }
       } catch {}
@@ -238,7 +238,7 @@ export function AppProvider({ children }) {
       teamMembers,
       instruments: index.instruments?.length
         ? index.instruments
-        : ['Voz', 'Piano', 'Guitarra acústica', 'Guitarra eléctrica', 'Bajo', 'Batería'],
+        : ['Corista', 'Piano', 'Guitarra', 'Bajo', 'Batería'],
       songs: (index.songs || []).map((s) => ({ name: s.name, artist: s.artist })),
       artists: [...new Set((index.songs || []).map((s) => s.artist))].sort((a, b) => a.localeCompare(b)),
       songByKey: new Map((index.songs || []).map((s) => [s.key, s])),

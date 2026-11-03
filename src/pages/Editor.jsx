@@ -11,20 +11,11 @@ const blankSong = () => ({ key: uid(), name: '', artist: '' });
 const blankMember = () => ({ key: uid(), instrument: '', person: '' });
 
 const DEFAULT_INSTRUMENTS = [
-  'Voz',
-  'Voz principal',
-  'Coros',
+  'Corista',
   'Piano',
-  'Teclado',
-  'Sintetizador',
-  'Guitarra acústica',
-  'Guitarra eléctrica',
+  'Guitarra',
   'Bajo',
   'Batería',
-  'Percusión',
-  'Saxofón',
-  'Violín',
-  'Dirección',
 ];
 
 const extractDirectors = (s) => {

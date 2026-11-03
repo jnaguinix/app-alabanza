@@ -1,7 +1,7 @@
 import { toISO } from '../lib/format';
 
 export const INSTRUMENTS = [
-  'Batería', 'Bajo', 'Piano', 'Teclado', 'Guitarra acústica', 'Guitarra eléctrica', 'Corista',
+  'Corista', 'Piano', 'Guitarra', 'Bajo', 'Batería',
 ];
 
 const SONGS = [
@@ -16,7 +16,7 @@ const SONGS = [
 const DIRECTORS = ['Laura Torres', 'Javier Castillo', 'Kathe', 'Luis'];
 const BAND = [
   ['Batería', 'Miguel'], ['Bajo', 'Manuel'], ['Piano', 'Sofía Vargas'],
-  ['Guitarra acústica', 'Alejo'], ['Guitarra eléctrica', 'Jhonny'], ['Corista', 'Hanny'], ['Corista', 'Kathe'],
+  ['Guitarra', 'Alejo'], ['Guitarra', 'Jhonny'], ['Corista', 'Hanny'], ['Corista', 'Kathe'],
 ];
 
 /** Servicios de ejemplo: los últimos 14 domingos, generados de forma determinista. */

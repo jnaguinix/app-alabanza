@@ -1,13 +1,35 @@
 import { collection, doc, getDocs, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { keyOf, formatDirectors, cleanSingleName, splitAndCleanNames, isCompoundName } from '../lib/format';
+import {
+  keyOf,
+  formatDirectors,
+  cleanSingleName,
+  splitAndCleanNames,
+  isCompoundName,
+  normalizeRoleOrInstrument,
+  OFFICIAL_ROLES_AND_INSTRUMENTS,
+} from '../lib/format';
 import { invalidateTeamCache } from './team';
 import { invalidateServicesCache, DIRECTOR_ROLE } from './store';
 
-export { cleanSingleName, splitAndCleanNames, isCompoundName };
+export { cleanSingleName, splitAndCleanNames, isCompoundName, normalizeRoleOrInstrument };
 
 const BATCH_SIZE = 400;
 
+/**
+ * Normaliza y deduplica un arreglo de roles/instrumentos hacia el catálogo oficial.
+ * Si queda vacío, asigna ['Corista'] por defecto.
+ */
+function cleanMemberInstruments(instruments) {
+  const norm = [
+    ...new Set(
+      (Array.isArray(instruments) ? instruments : [instruments])
+        .map(normalizeRoleOrInstrument)
+        .filter(Boolean)
+    ),
+  ];
+  return norm.length ? norm : ['Corista'];
+}
 
 /**
  * Reconstruye el índice completo de personas y canciones a partir de la lista de servicios limpios.
@@ -54,10 +76,11 @@ function buildIndexFromServices(servicesList) {
       rolesGivenToPersonInThisService.add(keyOf(d));
     });
 
-    // Personas: banda
+    // Personas: banda / acompañamiento (Corista, Piano, Guitarra, Bajo, Batería)
     (s.band || []).forEach((m) => {
       if (m.person && m.instrument) {
-        addRole(m.person, m.instrument);
+        const normRole = normalizeRoleOrInstrument(m.instrument) || 'Corista';
+        addRole(m.person, normRole);
         rolesGivenToPersonInThisService.add(keyOf(m.person));
       }
     });
@@ -74,9 +97,9 @@ function buildIndexFromServices(servicesList) {
 }
 
 /**
- * Ejecuta la migración y normalización completa de datos:
- * 1. Limpia y separa los integrantes en Firestore (`integrantes`).
- * 2. Actualiza los servicios pasados en Firestore (`servicios`).
+ * Ejecuta la migración y normalización completa de datos en Firestore:
+ * 1. Normaliza y separa integrantes en `integrantes` y unifica instrumentos a: Corista, Piano, Guitarra, Bajo, Batería.
+ * 2. Actualiza los servicios pasados en `servicios` corrigiendo nombres e instrumentos de la banda.
  * 3. Reconstruye el índice global (`indice/personas`, `indice/canciones`, `indice/meta`).
  */
 export async function runDataCleanup() {
@@ -105,6 +128,8 @@ export async function runDataCleanup() {
       const split = splitAndCleanNames(rawName);
       const isCompound = split.length > 1;
       const needsNameFix = split.length === 1 && split[0] !== rawName;
+      const cleanInstruments = cleanMemberInstruments(data.instruments);
+      const needsInstrumentFix = JSON.stringify(cleanInstruments) !== JSON.stringify(data.instruments || []);
 
       if (isCompound) {
         compoundMembersToDelete.push({ docId: docSnap.id, rawName, data, individualNames: split });
@@ -118,8 +143,16 @@ export async function runDataCleanup() {
           id: newKey,
           name: cleanName,
           canDirect: data.canDirect ?? true,
-          instruments: Array.isArray(data.instruments) && data.instruments.length ? data.instruments : ['Voz'],
+          instruments: cleanInstruments,
           active: data.active !== false,
+          updatedAt: Date.now(),
+        });
+      } else if (needsInstrumentFix) {
+        membersToSave.set(docSnap.id, {
+          ...data,
+          id: docSnap.id,
+          name: rawName,
+          instruments: cleanInstruments,
           updatedAt: Date.now(),
         });
       }
@@ -131,16 +164,16 @@ export async function runDataCleanup() {
         const key = keyOf(individualName);
         const existing = membersToSave.get(key) || existingMembers.get(key);
 
-        const mergedInstruments = new Set([
+        const mergedInstruments = cleanMemberInstruments([
           ...(existing?.instruments || []),
-          ...(data.instruments || ['Voz']),
+          ...(data.instruments || ['Corista']),
         ]);
 
         membersToSave.set(key, {
           id: key,
           name: individualName,
           canDirect: Boolean(existing?.canDirect ?? data.canDirect ?? true),
-          instruments: mergedInstruments.size ? [...mergedInstruments] : ['Voz'],
+          instruments: mergedInstruments,
           active: true,
           updatedAt: Date.now(),
         });
@@ -165,7 +198,7 @@ export async function runDataCleanup() {
       }
     }
 
-    // Borrar compuestos
+    // Borrar compuestos obsoletos
     for (const { docId, rawName } of compoundMembersToDelete) {
       const docRef = doc(db, 'integrantes', docId);
       memberBatch.delete(docRef);
@@ -222,22 +255,27 @@ export async function runDataCleanup() {
         serviceChanged = true;
       }
 
-      // 2. Limpieza de banda
+      // 2. Limpieza de banda e instrumentos
       const cleanBand = [];
       (s.band || []).forEach((m) => {
         if (!m.person) return;
+        const normRole = normalizeRoleOrInstrument(m.instrument) || 'Corista';
+        if (normRole !== m.instrument) {
+          serviceChanged = true;
+        }
+
         const splitPeople = splitAndCleanNames(m.person);
         if (splitPeople.length > 1) {
           serviceChanged = true;
           splitPeople.forEach((p) => {
-            cleanBand.push({ instrument: m.instrument || 'Voz', person: p });
+            cleanBand.push({ instrument: normRole, person: p });
           });
         } else {
           const singleClean = splitPeople[0] || cleanSingleName(m.person);
           if (singleClean !== m.person) {
             serviceChanged = true;
           }
-          cleanBand.push({ instrument: m.instrument || 'Voz', person: singleClean });
+          cleanBand.push({ instrument: normRole, person: singleClean });
         }
       });
 

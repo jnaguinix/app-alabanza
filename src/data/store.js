@@ -22,7 +22,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { keyOf, normalize, formatDirectors, cleanSingleName, splitAndCleanNames } from '../lib/format';
+import { keyOf, normalize, formatDirectors, cleanSingleName, splitAndCleanNames, normalizeRoleOrInstrument } from '../lib/format';
 import { buildSeed, INSTRUMENTS } from './seed';
 
 export const DIRECTOR_ROLE = 'Dirige';
@@ -64,7 +64,8 @@ function applyService(index, docData, sign) {
   directorList.forEach((d) => add(d, DIRECTOR_ROLE));
 
   (docData.band || []).forEach((m) => {
-    splitAndCleanNames(m.person).forEach((p) => add(p, m.instrument));
+    const normRole = normalizeRoleOrInstrument(m.instrument) || 'Corista';
+    splitAndCleanNames(m.person).forEach((p) => add(p, normRole));
   });
 
   roles.forEach(({ name, roles: list }, key) => {
@@ -464,7 +465,14 @@ export async function getIndex() {
       .sort((a, b) => (b.services || 0) - (a.services || 0) || a.name.localeCompare(b.name));
 
     const instruments = new Set(INSTRUMENTS);
-    people.forEach((p) => Object.keys(p.roles || {}).forEach((r) => r !== DIRECTOR_ROLE && instruments.add(r)));
+    people.forEach((p) =>
+      Object.keys(p.roles || {}).forEach((r) => {
+        if (r !== DIRECTOR_ROLE) {
+          const norm = normalizeRoleOrInstrument(r);
+          if (norm) instruments.add(norm);
+        }
+      })
+    );
 
     return {
       songs,

@@ -1,24 +1,24 @@
 import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { keyOf, cleanSingleName, splitAndCleanNames } from '../lib/format';
+import { keyOf, cleanSingleName, splitAndCleanNames, normalizeRoleOrInstrument } from '../lib/format';
 
 export const DEFAULT_MEMBERS = [
-  { name: 'Camilo', canDirect: true, instruments: ['Voz', 'Guitarra acústica'] },
-  { name: 'Kathe', canDirect: true, instruments: ['Voz'] },
-  { name: 'Dani', canDirect: true, instruments: ['Voz', 'Piano'] },
-  { name: 'Hanny', canDirect: true, instruments: ['Voz'] },
-  { name: 'Laura Torres', canDirect: true, instruments: ['Voz'] },
+  { name: 'Camilo', canDirect: true, instruments: ['Corista', 'Guitarra'] },
+  { name: 'Kathe', canDirect: true, instruments: ['Corista'] },
+  { name: 'Dani', canDirect: true, instruments: ['Corista', 'Piano'] },
+  { name: 'Hanny', canDirect: true, instruments: ['Corista'] },
+  { name: 'Laura Torres', canDirect: true, instruments: ['Corista'] },
   { name: 'Sofía Vargas', canDirect: false, instruments: ['Piano'] },
-  { name: 'David Morales', canDirect: false, instruments: ['Guitarra acústica'] },
-  { name: 'Mateo Ríos', canDirect: false, instruments: ['Guitarra eléctrica'] },
+  { name: 'David Morales', canDirect: false, instruments: ['Guitarra'] },
+  { name: 'Mateo Ríos', canDirect: false, instruments: ['Guitarra'] },
   { name: 'Andrés Gómez', canDirect: false, instruments: ['Bajo'] },
   { name: 'Juan Pérez', canDirect: false, instruments: ['Batería'] },
   { name: 'Samuel Ortiz', canDirect: false, instruments: ['Batería'] },
-  { name: 'Lucas Peña', canDirect: false, instruments: ['Guitarra eléctrica'] },
-  { name: 'Elena Ramos', canDirect: false, instruments: ['Voz'] },
+  { name: 'Lucas Peña', canDirect: false, instruments: ['Guitarra'] },
+  { name: 'Elena Ramos', canDirect: false, instruments: ['Corista'] },
   { name: 'Carlos Ruiz', canDirect: false, instruments: ['Bajo'] },
   { name: 'Tomás Silva', canDirect: false, instruments: ['Piano'] },
-  { name: 'Mariana Castro', canDirect: false, instruments: ['Voz'] },
+  { name: 'Mariana Castro', canDirect: false, instruments: ['Corista'] },
 ];
 
 let teamCache = null;
@@ -30,6 +30,14 @@ export function invalidateTeamCache() {
   teamCache = null;
   teamCachePromise = null;
   teamCacheTimestamp = 0;
+}
+
+/**
+ * Normaliza y limpia una lista de instrumentos/roles eliminando duplicados y obsoletos.
+ */
+function cleanMemberList(instruments) {
+  const norm = [...new Set((instruments || []).map(normalizeRoleOrInstrument).filter(Boolean))];
+  return norm.length ? norm : ['Corista'];
 }
 
 /**
@@ -55,7 +63,7 @@ export async function listTeamMembers(force = false) {
           id: keyOf(m.name),
           name: m.name,
           canDirect: m.canDirect ?? true,
-          instruments: m.instruments || ['Voz'],
+          instruments: cleanMemberList(m.instruments),
           active: true,
         })).sort((a, b) => a.name.localeCompare(b.name));
         teamCacheTimestamp = Date.now();
@@ -63,7 +71,13 @@ export async function listTeamMembers(force = false) {
       }
 
       teamCache = snap.docs
-        .map((d) => d.data())
+        .map((d) => {
+          const data = d.data();
+          return {
+            ...data,
+            instruments: cleanMemberList(data.instruments),
+          };
+        })
         .filter((m) => m.active !== false)
         .sort((a, b) => a.name.localeCompare(b.name));
       teamCacheTimestamp = Date.now();
@@ -74,7 +88,7 @@ export async function listTeamMembers(force = false) {
         id: keyOf(m.name),
         name: m.name,
         canDirect: m.canDirect ?? true,
-        instruments: m.instruments || ['Voz'],
+        instruments: cleanMemberList(m.instruments),
         active: true,
       })).sort((a, b) => a.name.localeCompare(b.name));
     } finally {
@@ -89,13 +103,15 @@ export async function listTeamMembers(force = false) {
  * Guarda o actualiza un integrante en el directorio.
  * Descompone automáticamente entradas compuestas y normaliza nombres erróneos (ej. Luchó -> Lucho).
  */
-export async function saveTeamMember({ id, name, canDirect = true, instruments = ['Voz'], active = true }) {
+export async function saveTeamMember({ id, name, canDirect = true, instruments = ['Corista'], active = true }) {
   const memberName = (name || '').trim();
   if (!memberName) {
     throw new Error('Escribe el nombre del integrante.');
   }
 
   const individualNames = splitAndCleanNames(memberName);
+  const normalizedInstruments = cleanMemberList(instruments);
+
   if (individualNames.length > 1) {
     // Si el usuario intentó guardar un nombre compuesto ("Camilo / Kathe"), guardamos cada individuo
     const saved = [];
@@ -105,7 +121,7 @@ export async function saveTeamMember({ id, name, canDirect = true, instruments =
         id: singleId,
         name: singleName,
         canDirect: Boolean(canDirect),
-        instruments: Array.isArray(instruments) && instruments.length ? instruments : ['Voz'],
+        instruments: normalizedInstruments,
         active: Boolean(active),
         updatedAt: Date.now(),
       };
@@ -128,7 +144,7 @@ export async function saveTeamMember({ id, name, canDirect = true, instruments =
     id: memberId,
     name: cleanName,
     canDirect: Boolean(canDirect),
-    instruments: Array.isArray(instruments) && instruments.length ? instruments : ['Voz'],
+    instruments: normalizedInstruments,
     active: Boolean(active),
     updatedAt: Date.now(),
   };
@@ -184,7 +200,7 @@ export async function batchSaveTeamMembers(members) {
           id: memberId,
           name: singleName,
           canDirect: Boolean(m.canDirect),
-          instruments: Array.isArray(m.instruments) && m.instruments.length ? m.instruments : ['Voz'],
+          instruments: cleanMemberList(m.instruments),
           active: m.active !== false,
           updatedAt: Date.now(),
         };

@@ -124,3 +124,41 @@ export const isCompoundName = (raw = '') => {
   return parts.length > 1;
 };
 
+/** Catálogo oficial simplificado de acompañamiento e instrumentos de alabanza */
+export const OFFICIAL_ROLES_AND_INSTRUMENTS = [
+  'Corista',
+  'Piano',
+  'Guitarra',
+  'Bajo',
+  'Batería',
+];
+
+/**
+ * Normaliza cualquier rol o instrumento heredado al catálogo unificado oficial:
+ * Corista, Piano, Guitarra, Bajo, Batería.
+ * Si es un rol obsoleto (ej. violín, saxofón), devuelve null.
+ */
+export const normalizeRoleOrInstrument = (raw = '') => {
+  const s = (raw || '').trim().toLowerCase();
+  if (!s) return null;
+
+  if (['corista', 'voz', 'voces', 'voz principal', 'coro', 'coros'].includes(s)) {
+    return 'Corista';
+  }
+  if (['piano', 'teclado', 'teclados', 'sintetizador', 'synth'].includes(s)) {
+    return 'Piano';
+  }
+  if (['guitarra', 'guitarra acústica', 'guitarra acustica', 'guitarra eléctrica', 'guitarra electrica'].includes(s)) {
+    return 'Guitarra';
+  }
+  if (['bajo'].includes(s)) {
+    return 'Bajo';
+  }
+  if (['batería', 'bateria', 'percusión', 'percusion'].includes(s)) {
+    return 'Batería';
+  }
+
+  return null;
+};
+
+
