@@ -290,7 +290,7 @@ export default function Editor() {
       )}
       <Stepper step={step} maxStep={maxStep} onGo={goTo} editing={exists} />
 
-      <div className="pb-16 md:pb-3">
+      <div className="pb-36 md:pb-4">
         {step === 0 && (
           <Card title="¿Cuándo y quién dirige?">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -506,7 +506,7 @@ export default function Editor() {
         )}
       </div>
 
-      <div className="fixed inset-x-0 bottom-14 z-30 flex gap-3 border-t border-line bg-bg/95 px-4 py-2 backdrop-blur md:sticky md:inset-x-auto md:bottom-0 md:-mx-8 md:px-8">
+      <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 flex gap-3 border-t border-line bg-surface/95 px-4 py-2.5 backdrop-blur shadow-sm md:sticky md:inset-x-auto md:bottom-0 md:-mx-8 md:px-8 md:py-3 md:shadow-none">
         {step > 0 && (
           <Button variant="secondary" icon={ArrowLeft} onClick={() => goTo(step - 1)}>
             Atrás

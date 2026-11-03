@@ -117,8 +117,8 @@ export function Sheet({ open, onClose, title, children, footer }) {
           <h2 className="font-display text-xl font-bold">{title}</h2>
           <IconButton icon={X} label="Cerrar" onClick={onClose} className="-mr-2" />
         </div>
-        <div className="overflow-y-auto px-5 pb-5">{children}</div>
-        {footer && <div className="flex gap-3 border-t border-line px-5 py-4">{footer}</div>}
+        <div className="overflow-y-auto px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">{children}</div>
+        {footer && <div className="flex gap-3 border-t border-line px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">{footer}</div>}
       </div>
     </div>
   );

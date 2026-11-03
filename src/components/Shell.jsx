@@ -747,7 +747,7 @@ export function Shell({ children }) {
         </Button>
       </aside>
 
-      <div className="min-w-0 pb-20 md:pb-12">
+      <div className="min-w-0 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-12">
         <div className="flex items-center justify-between px-4 pt-2.5 md:hidden">
           <Logo />
           <div className="flex items-center gap-2">
@@ -790,7 +790,7 @@ export function Shell({ children }) {
       </nav>
 
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-20 z-[60] flex flex-col items-center gap-2 px-4 md:bottom-8"
+        className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-[60] flex flex-col items-center gap-2 px-4 md:bottom-8"
         aria-live="polite"
       >
         {toasts.map((t) => (

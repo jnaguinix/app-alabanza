@@ -37,55 +37,19 @@ function ShareCard({ service, cardRef }) {
         <span style={{ background: '#8AA4EE' }} />
       </div>
 
-      {/* Cabecera con Marca y Etiqueta */}
+      {/* Fecha y Dirección */}
       <div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <span
-              style={{
-                background: '#213E91',
-                color: '#FFFFFF',
-                fontFamily: '"Bricolage Grotesque", sans-serif',
-              }}
-              className="flex size-14 items-center justify-center rounded-2xl text-[30px] font-extrabold shadow-sm"
-            >
-              A
-            </span>
-            <span
-              style={{
-                color: '#213E91',
-                fontFamily: '"Bricolage Grotesque", sans-serif',
-              }}
-              className="text-[38px] font-extrabold tracking-tight"
-            >
-              AlabanzApp
-            </span>
-          </div>
-
-          <span
-            style={{
-              background: '#FFF1BD',
-              color: '#0F1B3D',
-              borderColor: '#FAC20E',
-            }}
-            className="rounded-full border px-5 py-2 text-[22px] font-bold"
-          >
-            Servicio de Alabanza
-          </span>
-        </div>
-
-        {/* Fecha y Dirección */}
         <h2
           style={{
             fontFamily: '"Bricolage Grotesque", sans-serif',
             color: '#0F1B3D',
           }}
-          className="mt-8 text-[76px] leading-[1.05] font-extrabold tracking-tight first-letter:uppercase"
+          className="text-[82px] leading-[1.05] font-extrabold tracking-tight first-letter:uppercase"
         >
           {longDate(service.fecha).split(' de ').slice(0, 2).join(' de ')}
         </h2>
 
-        <p className="mt-2.5 text-[32px] text-[#55607F]">
+        <p className="mt-3 text-[34px] text-[#55607F]">
           <span className="font-medium">
             {isMultiple ? 'Dirigen: ' : 'Dirige: '}
           </span>
@@ -97,7 +61,7 @@ function ShareCard({ service, cardRef }) {
 
       {/* Lista de Canciones */}
       <div className="my-6 flex-1 flex flex-col justify-center">
-        <ol className="space-y-5">
+        <ol className="space-y-6">
           {service.songs.map((s, i) => (
             <li key={i} className="flex items-baseline gap-6">
               <span
@@ -116,11 +80,11 @@ function ShareCard({ service, cardRef }) {
                     fontFamily: '"Bricolage Grotesque", sans-serif',
                     color: '#0F1B3D',
                   }}
-                  className="text-[44px] leading-tight font-bold tracking-tight"
+                  className="text-[46px] leading-tight font-bold tracking-tight"
                 >
                   {s.name}
                 </p>
-                <p style={{ color: '#55607F' }} className="text-[26px] font-medium">
+                <p style={{ color: '#55607F' }} className="text-[28px] font-medium">
                   {s.artist}
                 </p>
               </div>
@@ -129,20 +93,22 @@ function ShareCard({ service, cardRef }) {
         </ol>
       </div>
 
-      {/* Músicos y Coristas (Banda) */}
+      {/* Músicos y Coristas (Banda) - Mayor tamaño y legibilidad */}
       {band.length > 0 && (
         <div
           style={{
-            borderColor: '#D9DFEC',
+            borderColor: '#CBD5E1',
             background: '#F8FAFC',
           }}
-          className="rounded-3xl border-2 p-7"
+          className="rounded-3xl border-2 p-8 shadow-xs"
         >
-          <div className="grid grid-cols-2 gap-x-10 gap-y-3 text-[24px]">
+          <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-[30px] leading-snug">
             {band.map(([instrument, people]) => (
-              <p key={instrument} className="truncate">
-                <span style={{ color: '#55607F' }}>{instrument}: </span>
-                <strong style={{ color: '#0F1B3D' }} className="font-semibold">
+              <p key={instrument} className="break-words">
+                <span style={{ color: '#55607F' }} className="font-medium">
+                  {instrument}:{' '}
+                </span>
+                <strong style={{ color: '#0F1B3D' }} className="font-bold">
                   {people.join(', ')}
                 </strong>
               </p>
