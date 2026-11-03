@@ -4,16 +4,40 @@ import { useApp } from '../app-context';
 import { Band, Setlist } from '../components/Setlist';
 import { DateBlock, ServiceCard } from '../components/ServiceCard';
 import { useShare } from '../components/ShareHost';
-import { Button, Empty, Skeleton } from '../components/ui';
+import { Button, Empty, Skeleton, cx } from '../components/ui';
 import { queryServices } from '../data/store';
 import { useAsync } from '../hooks/useAsync';
 import { longDate, monthKey, nextSundayISO, todayISO } from '../lib/format';
 
-function Stat({ value, label }) {
+function Stat({ value, label, subtext, wide }) {
   return (
-    <div className="rounded-xl border border-line bg-surface p-3">
-      <p className="truncate font-display text-xl font-extrabold">{value}</p>
-      <p className="mt-0.5 text-sm text-muted">{label}</p>
+    <div
+      className={cx(
+        'rounded-2xl border border-line bg-surface p-3 sm:p-3.5 flex flex-col justify-between transition',
+        wide && 'col-span-2 sm:col-span-1'
+      )}
+    >
+      <div>
+        <p
+          className={cx(
+            'font-display font-extrabold text-ink tracking-tight',
+            wide
+              ? 'text-sm sm:text-base leading-snug line-clamp-2 sm:truncate'
+              : 'text-xl sm:text-2xl truncate'
+          )}
+          title={typeof value === 'string' ? value : undefined}
+        >
+          {value}
+        </p>
+      </div>
+      <div className="mt-1 flex items-center justify-between gap-1">
+        <p className="text-xs text-muted font-medium">{label}</p>
+        {subtext && (
+          <span className="text-[11px] font-semibold text-brand-blue shrink-0">
+            {subtext}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -120,10 +144,15 @@ export default function Home() {
         </div>
       </section>
 
-      <section aria-label="Resumen" className="grid grid-cols-3 gap-2 sm:gap-3">
+      <section aria-label="Resumen" className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
         <Stat value={index.serviceCount} label="Servicios" />
-        <Stat value={monthCount} label="Este mes" />
-        <Stat value={topSong ? topSong.name : '—'} label="Más cantada" />
+        <Stat value={monthCount ?? 0} label="Este mes" />
+        <Stat
+          value={topSong ? topSong.name : '—'}
+          label="Más cantada"
+          subtext={topSong?.count ? `${topSong.count} veces` : null}
+          wide
+        />
       </section>
 
       {recent.length > 0 && (
