@@ -282,6 +282,13 @@ function TeamDirectorySheet({ open, onClose }) {
   const [editInstruments, setEditInstruments] = useState([]);
   const [editCustomInstrument, setEditCustomInstrument] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+  const editRowRef = useRef(null);
+
+  useEffect(() => {
+    if (editingMember && editRowRef.current) {
+      editRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [editingMember]);
 
   // Sincronización y borrado
   const [syncingAll, setSyncingAll] = useState(false);
@@ -355,6 +362,7 @@ function TeamDirectorySheet({ open, onClose }) {
 
   // Abrir editor de integrante
   const startEditing = (member) => {
+    setShowAddForm(false);
     setEditingMember(member);
     setEditName(member.name);
     setEditCanDirect(Boolean(member.canDirect));
@@ -554,155 +562,23 @@ function TeamDirectorySheet({ open, onClose }) {
           </div>
         )}
 
-        {/* Panel de Edición de Integrante (Modal/Drawer integrado) */}
-        {editingMember && (
-          <form onSubmit={handleSaveEdit} className="mb-5 rounded-2xl border-2 border-brand-blue bg-surface p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-2 border-b border-line pb-2 mb-3">
-              <div className="flex items-center gap-2">
-                <PenLine size={16} className="text-brand-blue" />
-                <h4 className="text-sm font-bold text-ink">Editar integrante: {editingMember.name}</h4>
-              </div>
-              <IconButton icon={X} label="Cerrar edición" onClick={() => setEditingMember(null)} />
-            </div>
-
-            <div className="space-y-3.5">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-ink">Nombre completo</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand-blue"
-                  placeholder="Nombre y apellido"
-                  required
-                />
-              </div>
-
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label className="text-xs font-semibold text-ink">Instrumentos y roles que desempeña</label>
-                  <span className="text-[10px] text-muted">Selecciona todos los que apliquen</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {PRESET_INSTRUMENTS.map((ins) => {
-                    const active = editInstruments.includes(ins);
-                    return (
-                      <button
-                        key={ins}
-                        type="button"
-                        onClick={() => toggleInstrumentInList(editInstruments, setEditInstruments, ins)}
-                        className={cx(
-                          'rounded-lg px-2.5 py-1 text-xs font-medium border transition',
-                          active
-                            ? 'border-brand-blue bg-brand-blue text-white shadow-xs'
-                            : 'border-line bg-sunken text-muted hover:border-ink/30 hover:text-ink'
-                        )}
-                      >
-                        {active && <Check size={12} className="inline mr-1 -mt-0.5" />}
-                        {ins}
-                      </button>
-                    );
-                  })}
-                  {/* Instrumentos personalizados que no están en la lista fija */}
-                  {editInstruments
-                    .filter((ins) => !PRESET_INSTRUMENTS.includes(ins))
-                    .map((custom) => (
-                      <button
-                        key={custom}
-                        type="button"
-                        onClick={() => toggleInstrumentInList(editInstruments, setEditInstruments, custom)}
-                        className="rounded-lg px-2.5 py-1 text-xs font-medium border border-brand-blue bg-brand-blue text-white"
-                      >
-                        <Check size={12} className="inline mr-1 -mt-0.5" />
-                        {custom} <span className="ml-1 opacity-70">×</span>
-                      </button>
-                    ))}
-                </div>
-
-                {/* Input para instrumento personalizado */}
-                <div className="mt-2 flex gap-1.5">
-                  <input
-                    type="text"
-                    value={editCustomInstrument}
-                    onChange={(e) => setEditCustomInstrument(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addCustomInstrumentToList(
-                          editInstruments,
-                          setEditInstruments,
-                          editCustomInstrument,
-                          setEditCustomInstrument
-                        );
-                      }
-                    }}
-                    placeholder="+ Otro instrumento (ej. Violonchelo, Congas)…"
-                    className="flex-1 rounded-lg border border-line bg-sunken px-2.5 py-1 text-xs text-ink placeholder:text-muted/60"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() =>
-                      addCustomInstrumentToList(
-                        editInstruments,
-                        setEditInstruments,
-                        editCustomInstrument,
-                        setEditCustomInstrument
-                      )
-                    }
-                    className="shrink-0 text-xs px-2.5 py-1"
-                  >
-                    Añadir
-                  </Button>
-                </div>
-              </div>
-
-              {/* Rol de Director */}
-              <div className="rounded-xl border border-line bg-sunken/60 p-3">
-                <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={editCanDirect}
-                    onChange={(e) => setEditCanDirect(e.target.checked)}
-                    className="mt-0.5 size-4 rounded border-line text-brand-blue"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-ink">Puede dirigir alabanza (Director oficial)</span>
-                    <p className="mt-0.5 text-[11px] text-muted">
-                      Aparecerá en el grupo principal de directores al crear o editar servicios.
-                      (Nota: Cualquier músico o corista también puede ser seleccionado para dirigir en servicios individuales).
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <Button type="button" variant="ghost" onClick={() => setEditingMember(null)} className="text-xs">
-                  Cancelar
-                </Button>
-                <Button type="submit" variant="primary" disabled={savingEdit} className="text-xs">
-                  {savingEdit ? 'Guardando…' : 'Guardar cambios'}
-                </Button>
-              </div>
-            </div>
-          </form>
-        )}
-
         {/* Formulario nuevo integrante (Colapsable) */}
-        {!editingMember && (
-          <div className="mb-4">
-            {!showAddForm ? (
-              <div className="flex justify-between items-center gap-2">
-                <Button
-                  variant="secondary"
-                  icon={Plus}
-                  onClick={() => setShowAddForm(true)}
-                  className="w-full text-xs py-2"
-                >
-                  Añadir nuevo integrante
-                </Button>
-              </div>
-            ) : (
+        <div className="mb-4">
+          {!showAddForm ? (
+            <div className="flex justify-between items-center gap-2">
+              <Button
+                variant="secondary"
+                icon={Plus}
+                onClick={() => {
+                  setEditingMember(null);
+                  setShowAddForm(true);
+                }}
+                className="w-full text-xs py-2"
+              >
+                Añadir nuevo integrante
+              </Button>
+            </div>
+          ) : (
               <form onSubmit={handleAddMember} className="rounded-2xl border border-line bg-sunken/60 p-3.5">
                 <div className="flex items-center justify-between mb-2.5">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-muted">Nuevo integrante</h4>
@@ -820,7 +696,6 @@ function TeamDirectorySheet({ open, onClose }) {
               </form>
             )}
           </div>
-        )}
 
         {/* Barra de Búsqueda y Pestañas */}
         <div className="mb-3 space-y-2">
@@ -898,56 +773,207 @@ function TeamDirectorySheet({ open, onClose }) {
           </div>
         ) : (
           <div className="space-y-2">
-            {filteredMembers.map((m) => (
-              <div
-                key={m.id}
-                className="flex items-center justify-between gap-2.5 rounded-2xl border border-line bg-surface p-3 transition hover:border-brand-blue/30"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-bold text-ink">{m.name}</p>
-                    {m.canDirect && (
-                      <span className="rounded-md bg-accent/25 px-1.5 py-0.5 text-[10px] font-extrabold text-ink">
-                        Director(a)
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-1 flex flex-wrap gap-1 text-[11px] text-muted">
-                    {(m.instruments || []).map((ins) => (
-                      <span key={ins} className="rounded-md bg-sunken px-2 py-0.5 font-medium text-ink/80 border border-line/40">
-                        {ins}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleCanDirect(m)}
-                    className={cx(
-                      'rounded-lg px-2 py-1 text-[11px] font-semibold border transition',
-                      m.canDirect
-                        ? 'border-accent bg-accent/20 text-ink'
-                        : 'border-line text-muted hover:bg-sunken'
-                    )}
-                    title={m.canDirect ? 'Quitar rol principal de director' : 'Habilitar como director oficial'}
+            {filteredMembers.map((m) => {
+              if (editingMember?.id === m.id) {
+                return (
+                  <form
+                    key={m.id}
+                    ref={editRowRef}
+                    onSubmit={handleSaveEdit}
+                    className="rounded-2xl border border-brand-blue/35 bg-surface p-3.5 shadow-md ring-2 ring-brand-blue/10 space-y-3 transition-all [animation:fade-in_.15s_ease-out]"
                   >
-                    {m.canDirect ? 'Es Director' : 'Habilitar director'}
-                  </button>
-                  <IconButton
-                    icon={PenLine}
-                    label={`Editar a ${m.name}`}
-                    onClick={() => startEditing(m)}
-                  />
-                  <IconButton
-                    icon={Trash2}
-                    label={`Eliminar a ${m.name}`}
-                    onClick={() => setMemberToDelete(m)}
-                  />
+                    <div className="flex items-center justify-between border-b border-line/60 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="flex size-6 items-center justify-center rounded-lg bg-brand-blue/10 text-brand-blue">
+                          <PenLine size={13} />
+                        </span>
+                        <h4 className="text-xs font-bold text-ink">Editando a {editingMember.name}</h4>
+                      </div>
+                      <IconButton
+                        icon={X}
+                        label="Cerrar edición"
+                        onClick={() => setEditingMember(null)}
+                        className="size-7"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-[11px] font-semibold text-muted">Nombre completo</label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full rounded-xl border border-line bg-sunken/40 px-3 py-1.5 text-xs font-semibold text-ink focus:border-brand-blue focus:bg-surface focus:outline-none transition"
+                        placeholder="Nombre y apellido"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <label className="text-[11px] font-semibold text-muted">Instrumentos y voces</label>
+                        <span className="text-[10px] text-muted">Toca para seleccionar</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {PRESET_INSTRUMENTS.map((ins) => {
+                          const active = editInstruments.includes(ins);
+                          return (
+                            <button
+                              key={ins}
+                              type="button"
+                              onClick={() => toggleInstrumentInList(editInstruments, setEditInstruments, ins)}
+                              className={cx(
+                                'rounded-lg px-2.5 py-1 text-[11px] font-medium border transition',
+                                active
+                                  ? 'border-brand-blue bg-brand-blue text-white shadow-xs'
+                                  : 'border-line/70 bg-sunken/50 text-muted hover:border-ink/30 hover:text-ink'
+                              )}
+                            >
+                              {active && <Check size={11} className="inline mr-1 -mt-0.5" />}
+                              {ins}
+                            </button>
+                          );
+                        })}
+                        {editInstruments
+                          .filter((ins) => !PRESET_INSTRUMENTS.includes(ins))
+                          .map((custom) => (
+                            <button
+                              key={custom}
+                              type="button"
+                              onClick={() => toggleInstrumentInList(editInstruments, setEditInstruments, custom)}
+                              className="rounded-lg px-2.5 py-1 text-[11px] font-medium border border-brand-blue bg-brand-blue text-white"
+                            >
+                              <Check size={11} className="inline mr-1 -mt-0.5" />
+                              {custom} <span className="ml-1 opacity-70">×</span>
+                            </button>
+                          ))}
+                      </div>
+
+                      {/* Input para instrumento personalizado */}
+                      <div className="mt-2 flex gap-1.5">
+                        <input
+                          type="text"
+                          value={editCustomInstrument}
+                          onChange={(e) => setEditCustomInstrument(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              addCustomInstrumentToList(
+                                editInstruments,
+                                setEditInstruments,
+                                editCustomInstrument,
+                                setEditCustomInstrument
+                              );
+                            }
+                          }}
+                          placeholder="+ Añadir otro instrumento…"
+                          className="flex-1 rounded-lg border border-line bg-sunken/40 px-2.5 py-1 text-xs text-ink placeholder:text-muted/60 focus:bg-surface focus:border-brand-blue focus:outline-none"
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() =>
+                            addCustomInstrumentToList(
+                              editInstruments,
+                              setEditInstruments,
+                              editCustomInstrument,
+                              setEditCustomInstrument
+                            )
+                          }
+                          className="shrink-0 text-xs px-2.5 py-1"
+                        >
+                          Añadir
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Rol de Director */}
+                    <label className="flex items-center justify-between gap-3 rounded-xl border border-line/70 bg-sunken/40 px-3 py-2 cursor-pointer transition hover:bg-sunken/70 select-none">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-ink">Director oficial</p>
+                        <p className="text-[10px] text-muted">Aparece en la selección rápida de directores</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={editCanDirect}
+                        onChange={(e) => setEditCanDirect(e.target.checked)}
+                        className="size-4 rounded border-line text-brand-blue focus:ring-brand-blue"
+                      />
+                    </label>
+
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-line/50">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setEditingMember(null)}
+                        className="text-xs h-8 px-3"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        disabled={savingEdit}
+                        className="text-xs h-8 px-3"
+                      >
+                        {savingEdit ? 'Guardando…' : 'Guardar cambios'}
+                      </Button>
+                    </div>
+                  </form>
+                );
+              }
+
+              return (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between gap-2.5 rounded-2xl border border-line bg-surface p-3 transition hover:border-brand-blue/30"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-bold text-ink">{m.name}</p>
+                      {m.canDirect && (
+                        <span className="rounded-md bg-accent/25 px-1.5 py-0.5 text-[10px] font-extrabold text-ink">
+                          Director(a)
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-1 text-[11px] text-muted">
+                      {(m.instruments || []).map((ins) => (
+                        <span key={ins} className="rounded-md bg-sunken px-2 py-0.5 font-medium text-ink/80 border border-line/40">
+                          {ins}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCanDirect(m)}
+                      className={cx(
+                        'rounded-lg px-2 py-1 text-[11px] font-semibold border transition',
+                        m.canDirect
+                          ? 'border-accent bg-accent/20 text-ink'
+                          : 'border-line text-muted hover:bg-sunken'
+                      )}
+                      title={m.canDirect ? 'Quitar rol principal de director' : 'Habilitar como director oficial'}
+                    >
+                      {m.canDirect ? 'Es Director' : 'Habilitar director'}
+                    </button>
+                    <IconButton
+                      icon={PenLine}
+                      label={`Editar a ${m.name}`}
+                      onClick={() => startEditing(m)}
+                    />
+                    <IconButton
+                      icon={Trash2}
+                      label={`Eliminar a ${m.name}`}
+                      onClick={() => setMemberToDelete(m)}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Sheet>
