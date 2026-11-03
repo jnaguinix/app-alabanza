@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BarChart3, Search, SearchX } from 'lucide-react';
+import { useApp } from '../app-context';
 import { Chip, Empty, PageHeader, ScrollableBar, Sheet, Skeleton, cx, inputClass } from '../components/ui';
 import { DateBlock } from '../components/ServiceCard';
 import { DIRECTOR_ROLE, getServices, queryServices } from '../data/store';
